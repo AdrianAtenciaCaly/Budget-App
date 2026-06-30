@@ -115,5 +115,69 @@ export function useBudgetMonth(userId: string | undefined, mes: string) {
     await supabase.from('expense_items').delete().eq('id', id)
   }
 
-  return { budget, items, categories, loading, updateBudget, addItem, updateItem, deleteItem, reload: load }
+  /**
+   * Copia ingresos y todas las líneas de gasto desde otro mes (sourceMes, 'YYYY-MM-01')
+   * hacia el mes actualmente cargado, reemplazando lo que haya en el mes actual.
+   */
+  async function copyFromMonth(sourceMes: string) {
+    if (!budget || !userId) return
+    if (sourceMes === mes) return
+
+    const { data: source } = await supabase
+      .from('budgets')
+      .select('*, expense_items(*)')
+      .eq('user_id', userId)
+      .eq('mes', sourceMes)
+      .maybeSingle()
+
+    if (!source) {
+      throw new Error('Ese mes no tiene presupuesto guardado todavía.')
+    }
+
+    // 1) Copiar ingresos
+    const { data: updatedBudget } = await supabase
+      .from('budgets')
+      .update({
+        ingreso_1: source.ingreso_1,
+        ingreso_2: source.ingreso_2,
+        ingresos_adicionales: source.ingresos_adicionales,
+      })
+      .eq('id', budget.id)
+      .select()
+      .single()
+    if (updatedBudget) setBudget(updatedBudget)
+
+    // 2) Borrar las líneas actuales del mes destino
+    await supabase.from('expense_items').delete().eq('budget_id', budget.id)
+
+    // 3) Insertar copia de las líneas del mes origen
+    const sourceItems = source.expense_items ?? []
+    if (sourceItems.length > 0) {
+      const newItems = sourceItems.map((it: ExpenseItem) => ({
+        budget_id: budget.id,
+        user_id: userId,
+        category_id: it.category_id,
+        concepto: it.concepto,
+        valor_presupuestado: it.valor_presupuestado,
+        valor_real: null,
+      }))
+      const { data: inserted } = await supabase.from('expense_items').insert(newItems).select()
+      setItems(inserted ?? [])
+    } else {
+      setItems([])
+    }
+  }
+
+  return {
+    budget,
+    items,
+    categories,
+    loading,
+    updateBudget,
+    addItem,
+    updateItem,
+    deleteItem,
+    copyFromMonth,
+    reload: load,
+  }
 }
