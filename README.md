@@ -1,4 +1,4 @@
-# Norte — Presupuesto personal mes a mes
+# Budget App — Presupuesto personal mes a mes
 
 App de finanzas personales: presupuesto mensual por categorías, proyección a varios meses
 adelante, y datos guardados de forma permanente **por usuario** en la nube (gratis).
@@ -59,7 +59,7 @@ Abre http://localhost:5173, crea una cuenta con tu correo y empieza a usar la ap
 3. En "Environment Variables" agrega `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`
    con los mismos valores de tu `.env`.
 4. Click **Deploy**. En ~1 minuto tendrás una URL pública (ej.
-   `norte-tuusuario.vercel.app`) que puedes abrir desde el celular o compartir.
+   `Budget App-tuusuario.vercel.app`) que puedes abrir desde el celular o compartir.
 
 **Opción B — desde la terminal:**
 
@@ -75,11 +75,11 @@ Cuando pregunte por variables de entorno, agrega las mismas dos de arriba.
 
 - **Presupuesto**: cada mes tiene sus propios ingresos y gastos por categoría
   (Vivienda, Comida, Préstamos, Ahorros, etc. — las mismas de tu plantilla original).
-  Cambia de mes con las flechas; si el mes no existe, Norte lo crea copiando los
+  Cambia de mes con las flechas; si el mes no existe, Budget App lo crea copiando los
   valores presupuestados del mes anterior como punto de partida editable.
 - **Proyección**: muestra ingresos, gastos, ahorro y disponible para los próximos
   3, 6 o 12 meses, con gráfico de línea. Solo proyecta meses que ya visitaste al menos
-  una vez en "Presupuesto" (así Norte sabe qué copiar hacia adelante).
+  una vez en "Presupuesto" (así Budget App sabe qué copiar hacia adelante).
 - Todo se guarda automáticamente en Supabase apenas escribes — no hay botón de
   "Guardar". Puedes cerrar el navegador y tu información seguirá ahí, en cualquier
   dispositivo donde inicies sesión con el mismo correo.

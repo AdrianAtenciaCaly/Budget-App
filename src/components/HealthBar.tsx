@@ -18,13 +18,20 @@ export default function HealthBar({ ingresos, basicos, noEsenciales, ahorro }: P
   const pAhorro = Math.min((ahorro / safe) * 100, 100)
 
   const pctBasico = ingresos > 0 ? basicos / ingresos : 0
-  let estado: { color: string; label: string; ring: string }
-  if (pctBasico <= 0.5 && total <= ingresos) {
-    estado = { color: 'bg-moss-500', label: 'Saludable — 50/30/20 en buen rumbo', ring: 'ring-moss-300' }
-  } else if (total <= ingresos) {
-    estado = { color: 'bg-amber-400', label: 'Ajustado — vigila tus gastos básicos', ring: 'ring-amber-400' }
+  const sinDatos = ingresos === 0 && basicos === 0 && noEsenciales === 0 && ahorro === 0
+  let estado: { color: string; label: string }
+  if (sinDatos) {
+    estado = { color: 'bg-ink/20', label: 'Aún sin datos — empieza registrando tus ingresos' }
+  } else if (ingresos === 0) {
+    estado = { color: 'bg-ink/20', label: 'Faltan los ingresos — agrégalos arriba para ver tu balance' }
+  } else if (total > ingresos) {
+    estado = { color: 'bg-clay', label: 'Gastos por encima del ingreso — revisa tus números' }
+  } else if (ahorro === 0) {
+    estado = { color: 'bg-amber-400', label: 'Sin ahorro planificado — considera reservar algo' }
+  } else if (pctBasico > 0.5) {
+    estado = { color: 'bg-amber-400', label: 'Básicos sobre el 50% — pero tienes ahorro, bien' }
   } else {
-    estado = { color: 'bg-clay', label: 'En rojo — los gastos superan el ingreso', ring: 'ring-clay' }
+    estado = { color: 'bg-moss-500', label: 'En buen rumbo — ingresos, gastos y ahorro balanceados' }
   }
 
   return (

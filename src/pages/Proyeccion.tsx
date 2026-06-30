@@ -78,7 +78,7 @@ export default function Proyeccion({ userId }: { userId: string }) {
           <h1 className="font-display text-2xl text-ink">Proyección</h1>
           <p className="text-sm text-ink/50 mt-1">
             Solo se proyectan los meses que ya tienen presupuesto creado en "Presupuesto". Los meses futuros sin datos
-            aparecen en cero — visítalos una vez para que Norte copie tu plan hacia adelante.
+            aparecen en cero — visítalos una vez para que Budget App copie tu plan hacia adelante.
           </p>
         </div>
         <select

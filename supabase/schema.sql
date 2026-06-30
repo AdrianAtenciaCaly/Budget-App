@@ -1,5 +1,5 @@
 -- ============================================================
--- NORTE — Esquema de base de datos (Supabase / Postgres)
+-- Budget App — Esquema de base de datos (Supabase / Postgres)
 -- Ejecuta este archivo completo en: Supabase Dashboard > SQL Editor
 -- ============================================================
 
