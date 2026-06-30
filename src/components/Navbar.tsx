@@ -1,11 +1,12 @@
 interface Props {
-  active: 'presupuesto' | 'proyeccion'
-  onChange: (tab: 'presupuesto' | 'proyeccion') => void
+  active: 'presupuesto' | 'proyeccion' | 'admin'
+  onChange: (tab: 'presupuesto' | 'proyeccion' | 'admin') => void
   email: string
+  isAdmin: boolean
   onSignOut: () => void
 }
 
-export default function Navbar({ active, onChange, email, onSignOut }: Props) {
+export default function Navbar({ active, onChange, email, isAdmin, onSignOut }: Props) {
   return (
     <header className="border-b border-moss-100 bg-paper/90 backdrop-blur sticky top-0 z-10">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -23,6 +24,11 @@ export default function Navbar({ active, onChange, email, onSignOut }: Props) {
           <TabButton active={active === 'proyeccion'} onClick={() => onChange('proyeccion')}>
             Proyección
           </TabButton>
+          {isAdmin && (
+            <TabButton active={active === 'admin'} onClick={() => onChange('admin')}>
+              ⚙ Categorías
+            </TabButton>
+          )}
         </nav>
 
         <div className="flex items-center gap-3">
@@ -43,6 +49,11 @@ export default function Navbar({ active, onChange, email, onSignOut }: Props) {
         <TabButton active={active === 'proyeccion'} onClick={() => onChange('proyeccion')}>
           Proyección
         </TabButton>
+        {isAdmin && (
+          <TabButton active={active === 'admin'} onClick={() => onChange('admin')}>
+            ⚙ Categorías
+          </TabButton>
+        )}
       </nav>
     </header>
   )

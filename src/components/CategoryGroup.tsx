@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Category, ExpenseItem } from '../types'
 
 interface Props {
@@ -11,13 +12,31 @@ interface Props {
 const fmt = (n: number) => n.toLocaleString('es-CO')
 
 export default function CategoryGroup({ category, items, onAdd, onUpdate, onDelete }: Props) {
+  const [collapsed, setCollapsed] = useState(false)
   const totalPresupuestado = items.reduce((s, i) => s + (i.valor_presupuestado || 0), 0)
   const totalReal = items.reduce((s, i) => s + (i.valor_real || 0), 0)
 
   return (
     <div className="border border-moss-100 rounded-xl bg-white/60 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-moss-50/60">
+      <button
+        onClick={() => setCollapsed((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-moss-50/60 hover:bg-moss-50 transition text-left"
+      >
         <div className="flex items-center gap-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`text-ink/30 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
           <span className="font-display text-base text-ink">{category.label}</span>
           <span className="text-[10px] uppercase tracking-wide text-ink/40 px-1.5 py-0.5 border border-moss-200 rounded-full">
             {category.tipo === 'basico' ? 'Básico' : category.tipo === 'ahorro' ? 'Ahorro' : 'No esencial'}
@@ -27,48 +46,50 @@ export default function CategoryGroup({ category, items, onAdd, onUpdate, onDele
           ${fmt(totalPresupuestado)}
           {totalReal > 0 && <span className="text-ink/40"> · real ${fmt(totalReal)}</span>}
         </div>
-      </div>
-
-      <div className="divide-y divide-moss-100/70">
-        {items.map((item) => (
-          <div key={item.id} className="flex items-center gap-2 px-4 py-2">
-            <input
-              value={item.concepto}
-              onChange={(e) => onUpdate(item.id, { concepto: e.target.value })}
-              placeholder="Concepto"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/30"
-            />
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-ink/30">$</span>
-              <input
-                type="number"
-                value={item.valor_presupuestado || ''}
-                onChange={(e) => onUpdate(item.id, { valor_presupuestado: Number(e.target.value) || 0 })}
-                placeholder="0"
-                className="w-28 bg-transparent text-sm font-mono text-right outline-none"
-              />
-            </div>
-            <button
-              onClick={() => onDelete(item.id)}
-              className="text-ink/20 hover:text-clay transition px-1 text-sm"
-              aria-label="Eliminar"
-              title="Eliminar línea"
-            >
-              ×
-            </button>
-          </div>
-        ))}
-        {items.length === 0 && (
-          <p className="px-4 py-3 text-xs text-ink/30">Sin movimientos todavía.</p>
-        )}
-      </div>
-
-      <button
-        onClick={onAdd}
-        className="w-full text-left px-4 py-2 text-xs text-moss-600 hover:bg-moss-50 transition"
-      >
-        + Añadir línea
       </button>
+
+      {!collapsed && (
+        <>
+          <div className="divide-y divide-moss-100/70">
+            {items.map((item) => (
+              <div key={item.id} className="flex items-center gap-2 px-4 py-2">
+                <input
+                  value={item.concepto}
+                  onChange={(e) => onUpdate(item.id, { concepto: e.target.value })}
+                  placeholder="Concepto"
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/30"
+                />
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-ink/30">$</span>
+                  <input
+                    type="number"
+                    value={item.valor_presupuestado || ''}
+                    onChange={(e) => onUpdate(item.id, { valor_presupuestado: Number(e.target.value) || 0 })}
+                    placeholder="0"
+                    className="w-28 bg-transparent text-sm font-mono text-right outline-none"
+                  />
+                </div>
+                <button
+                  onClick={() => onDelete(item.id)}
+                  className="text-ink/20 hover:text-clay transition px-1 text-sm"
+                  aria-label="Eliminar"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {items.length === 0 && (
+              <p className="px-4 py-3 text-xs text-ink/30">Sin movimientos todavía.</p>
+            )}
+          </div>
+          <button
+            onClick={onAdd}
+            className="w-full text-left px-4 py-2 text-xs text-moss-600 hover:bg-moss-50 transition"
+          >
+            + Añadir línea
+          </button>
+        </>
+      )}
     </div>
   )
 }
