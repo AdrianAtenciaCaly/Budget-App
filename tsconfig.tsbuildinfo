@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/CategoryGroup.tsx","./src/components/HealthBar.tsx","./src/components/MonthSelector.tsx","./src/components/Navbar.tsx","./src/lib/supabaseClient.ts","./src/lib/useBudgetMonth.ts","./src/pages/Login.tsx","./src/pages/Presupuesto.tsx","./src/pages/Proyeccion.tsx"],"version":"5.9.3"}

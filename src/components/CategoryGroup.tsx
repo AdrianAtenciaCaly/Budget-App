@@ -1,0 +1,74 @@
+import { Category, ExpenseItem } from '../types'
+
+interface Props {
+  category: Category
+  items: ExpenseItem[]
+  onAdd: () => void
+  onUpdate: (id: string, patch: Partial<ExpenseItem>) => void
+  onDelete: (id: string) => void
+}
+
+const fmt = (n: number) => n.toLocaleString('es-CO')
+
+export default function CategoryGroup({ category, items, onAdd, onUpdate, onDelete }: Props) {
+  const totalPresupuestado = items.reduce((s, i) => s + (i.valor_presupuestado || 0), 0)
+  const totalReal = items.reduce((s, i) => s + (i.valor_real || 0), 0)
+
+  return (
+    <div className="border border-moss-100 rounded-xl bg-white/60 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 bg-moss-50/60">
+        <div className="flex items-center gap-2">
+          <span className="font-display text-base text-ink">{category.label}</span>
+          <span className="text-[10px] uppercase tracking-wide text-ink/40 px-1.5 py-0.5 border border-moss-200 rounded-full">
+            {category.tipo === 'basico' ? 'Básico' : category.tipo === 'ahorro' ? 'Ahorro' : 'No esencial'}
+          </span>
+        </div>
+        <div className="font-mono text-sm text-ink/70">
+          ${fmt(totalPresupuestado)}
+          {totalReal > 0 && <span className="text-ink/40"> · real ${fmt(totalReal)}</span>}
+        </div>
+      </div>
+
+      <div className="divide-y divide-moss-100/70">
+        {items.map((item) => (
+          <div key={item.id} className="flex items-center gap-2 px-4 py-2">
+            <input
+              value={item.concepto}
+              onChange={(e) => onUpdate(item.id, { concepto: e.target.value })}
+              placeholder="Concepto"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink/30"
+            />
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-ink/30">$</span>
+              <input
+                type="number"
+                value={item.valor_presupuestado || ''}
+                onChange={(e) => onUpdate(item.id, { valor_presupuestado: Number(e.target.value) || 0 })}
+                placeholder="0"
+                className="w-28 bg-transparent text-sm font-mono text-right outline-none"
+              />
+            </div>
+            <button
+              onClick={() => onDelete(item.id)}
+              className="text-ink/20 hover:text-clay transition px-1 text-sm"
+              aria-label="Eliminar"
+              title="Eliminar línea"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        {items.length === 0 && (
+          <p className="px-4 py-3 text-xs text-ink/30">Sin movimientos todavía.</p>
+        )}
+      </div>
+
+      <button
+        onClick={onAdd}
+        className="w-full text-left px-4 py-2 text-xs text-moss-600 hover:bg-moss-50 transition"
+      >
+        + Añadir línea
+      </button>
+    </div>
+  )
+}
