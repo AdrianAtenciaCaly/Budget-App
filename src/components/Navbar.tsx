@@ -28,7 +28,7 @@ export default function Navbar({ active, onChange, email, isAdmin, dark, onToggl
           </TabButton>
           {isAdmin && (
             <TabButton active={active === 'admin'} onClick={() => onChange('admin')}>
-              ⚙ Categorías
+               Categorías
             </TabButton>
           )}
         </nav>
