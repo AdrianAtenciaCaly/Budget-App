@@ -2,24 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Paleta clara ───────────────────────────────────── */
+:root {
+  --color-ink:        21  35  31;
+  --color-paper:     246 243 236;
+  --color-surface:   255 255 255;
+  --color-moss-50:   238 243 239;
+  --color-moss-100:  214 227 217;
+  --color-moss-300:  144 179 155;
+  --color-moss-500:   63 107  82;
+  --color-moss-600:   47  84  64;
+  --color-moss-700:   35  64  50;
+  --color-moss-900:   21  36  25;
+  --color-amber-400: 217 154  61;
+  --color-amber-500: 194 129  42;
+  --color-clay:      184  92  62;
+  --color-wine:      122  59  59;
+}
+
+/* ── Paleta oscura elegante ─────────────────────────── */
+html.dark {
+  --color-ink:       210 235 220;
+  --color-paper:       8  16  12;
+  --color-surface:    18  32  24;
+  --color-moss-50:    18  32  24;
+  --color-moss-100:   30  52  38;
+  --color-moss-300:   72 140 100;
+  --color-moss-500:   52 168  83;
+  --color-moss-600:   68 190 118;
+  --color-moss-700:  110 215 155;
+  --color-moss-900:  190 230 205;
+  --color-amber-400: 240 180  60;
+  --color-amber-500: 210 150  40;
+  --color-clay:      220 105  72;
+  --color-wine:      210  90  90;
+}
+
 html {
-  background: #F6F3EC;
+  background: rgb(var(--color-paper));
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
 body {
   font-family: 'Inter', sans-serif;
-  color: #15231f;
+  color: rgb(var(--color-ink));
+}
+
+/* ── Tarjetas: reemplaza bg-white por --color-surface en dark ── */
+html.dark .bg-white\/70,
+html.dark .bg-white\/60,
+html.dark .bg-white {
+  background-color: rgb(var(--color-surface) / 0.95) !important;
+}
+
+/* Inputs y selects en dark */
+html.dark input,
+html.dark select {
+  background-color: rgb(var(--color-paper)) !important;
+  color: rgb(var(--color-ink)) !important;
+}
+
+/* Navbar en dark */
+html.dark header {
+  background-color: rgb(8 16 12 / 0.92) !important;
+  border-color: rgb(var(--color-moss-100) / 0.4) !important;
+}
+
+/* bg-moss-50/60 y bg-moss-50/70 en dark */
+html.dark .bg-moss-50\/60,
+html.dark .bg-moss-50\/70 {
+  background-color: rgb(var(--color-moss-50) / 0.8) !important;
+}
+
+/* Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-moss-300)) transparent;
+}
+
+::selection {
+  background: rgb(var(--color-moss-100));
 }
 
 .font-tabular {
   font-variant-numeric: tabular-nums;
-}
-
-::selection {
-  background: #d6e3d9;
-}
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #90b39b transparent;
 }
