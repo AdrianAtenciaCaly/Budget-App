@@ -120,7 +120,7 @@ export default function CategoryGroup({ category, items, onAdd, onUpdate, onDele
             onClick={onAdd}
             className="w-full text-left px-4 py-2 text-xs text-moss-600 hover:bg-moss-50 transition"
           >
-            + Añadir línea
+            + Añadir otro
           </button>
         </>
       )}
