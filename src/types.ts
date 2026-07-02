@@ -10,7 +10,7 @@ export interface Category {
 export interface Budget {
   id: string
   user_id: string
-  mes: string // 'YYYY-MM-01'
+  mes: string
   ingreso_1: number
   ingreso_2: number
   ingresos_adicionales: number
@@ -25,4 +25,13 @@ export interface ExpenseItem {
   concepto: string
   valor_presupuestado: number
   valor_real: number | null
+  pagado: boolean
+}
+
+export interface UserCategoryPref {
+  id: string
+  user_id: string
+  category_id: string
+  orden: number
+  visible: boolean
 }

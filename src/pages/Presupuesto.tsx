@@ -1,15 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useBudgetMonth, monthKey } from '../lib/useBudgetMonth'
 import MonthSelector from '../components/MonthSelector'
 import HealthBar from '../components/HealthBar'
 import CategoryGroup from '../components/CategoryGroup'
-
-const fmt = (n: number) => n.toLocaleString('es-CO')
+import CategorySettings from '../components/CategorySettings'
+import { supabase } from '../lib/supabaseClient'
+import { UserCategoryPref } from '../types'
 
 const MESES_LARGOS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
+
+const fmt = (n: number) => n.toLocaleString('es-CO')
 
 export default function Presupuesto({ userId }: { userId: string }) {
   const [mesDate, setMesDate] = useState(new Date())
@@ -18,11 +21,21 @@ export default function Presupuesto({ userId }: { userId: string }) {
     useBudgetMonth(userId, mes)
 
   const [showCopy, setShowCopy] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [sourceMonth, setSourceMonth] = useState('')
   const [copying, setCopying] = useState(false)
   const [copyError, setCopyError] = useState<string | null>(null)
+  const [prefs, setPrefs] = useState<UserCategoryPref[]>([])
 
-  // Opciones: 12 meses antes y 12 después del mes actual, sin incluir el mes activo
+  // Cargar preferencias del usuario
+  useEffect(() => {
+    supabase
+      .from('user_category_prefs')
+      .select('*')
+      .eq('user_id', userId)
+      .then(({ data }) => setPrefs(data ?? []))
+  }, [userId, showSettings]) // recarga cuando cierra el panel de settings
+
   const monthOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = []
     for (let i = -12; i <= 12; i++) {
@@ -64,22 +77,51 @@ export default function Presupuesto({ userId }: { userId: string }) {
     return { basicos, noEsenciales, ahorro }
   }, [items, categories])
 
+  // Aplicar preferencias: orden + visibilidad
+  const sortedCategories = useMemo(() => {
+    const prefsMap = new Map(prefs.map((p) => [p.category_id, p]))
+    return [...categories]
+      .filter((c) => {
+        const pref = prefsMap.get(c.id)
+        return pref ? pref.visible : true
+      })
+      .sort((a, b) => {
+        const oa = prefsMap.get(a.id)?.orden ?? a.orden
+        const ob = prefsMap.get(b.id)?.orden ?? b.orden
+        return oa - ob
+      })
+  }, [categories, prefs])
+
   if (loading) {
     return <div className="py-20 text-center text-ink/40 text-sm">Cargando tu presupuesto…</div>
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <MonthSelector mesDate={mesDate} onChange={setMesDate} />
-        <button
-          onClick={() => setShowCopy((v) => !v)}
-          className="text-sm border border-moss-100 hover:bg-moss-50 rounded-full px-4 py-2 transition text-ink/70"
-        >
-          Copiar datos de otro mes
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSettings(true)}
+            className="text-sm border border-moss-100 hover:bg-moss-50 rounded-full px-4 py-2 transition text-ink/70 flex items-center gap-1.5"
+            title="Configurar categorías"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            Categorías
+          </button>
+          <button
+            onClick={() => setShowCopy((v) => !v)}
+            className="text-sm border border-moss-100 hover:bg-moss-50 rounded-full px-4 py-2 transition text-ink/70"
+          >
+            Copiar de otro mes
+          </button>
+        </div>
       </div>
 
+      {/* Panel copiar */}
       {showCopy && (
         <div className="bg-white/70 border border-moss-100 rounded-2xl p-5 flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[200px]">
@@ -91,9 +133,7 @@ export default function Presupuesto({ userId }: { userId: string }) {
             >
               <option value="">Selecciona un mes…</option>
               {monthOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </div>
@@ -105,18 +145,14 @@ export default function Presupuesto({ userId }: { userId: string }) {
             {copying ? 'Copiando…' : `Copiar a ${MESES_LARGOS[mesDate.getMonth()]} ${mesDate.getFullYear()}`}
           </button>
           <button
-            onClick={() => {
-              setShowCopy(false)
-              setCopyError(null)
-            }}
+            onClick={() => { setShowCopy(false); setCopyError(null) }}
             className="text-sm text-ink/40 hover:text-ink/70 px-2 py-2 transition"
           >
             Cancelar
           </button>
           {copyError && <p className="w-full text-sm text-wine bg-wine/10 rounded-lg px-3 py-2">{copyError}</p>}
           <p className="w-full text-xs text-ink/40">
-            Esto reemplaza los ingresos y todas las líneas de gasto de {MESES_LARGOS[mesDate.getMonth()]}{' '}
-            {mesDate.getFullYear()} con una copia exacta del mes que elijas.
+            Reemplaza los ingresos y líneas de gasto de {MESES_LARGOS[mesDate.getMonth()]} {mesDate.getFullYear()}.
           </p>
         </div>
       )}
@@ -125,39 +161,22 @@ export default function Presupuesto({ userId }: { userId: string }) {
       <div className="bg-white/70 border border-moss-100 rounded-2xl p-6">
         <p className="text-xs uppercase tracking-wide text-ink/40 mb-4">Ingresos del mes</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <IncomeField
-            label="Ingreso 1"
-            value={budget?.ingreso_1 || 0}
-            onChange={(v) => updateBudget({ ingreso_1: v })}
-          />
-          <IncomeField
-            label="Ingreso 2"
-            value={budget?.ingreso_2 || 0}
-            onChange={(v) => updateBudget({ ingreso_2: v })}
-          />
-          <IncomeField
-            label="Ingresos adicionales"
-            value={budget?.ingresos_adicionales || 0}
-            onChange={(v) => updateBudget({ ingresos_adicionales: v })}
-          />
+          <IncomeField label="Ingreso 1" value={budget?.ingreso_1 || 0} onChange={(v) => updateBudget({ ingreso_1: v })} />
+          <IncomeField label="Ingreso 2" value={budget?.ingreso_2 || 0} onChange={(v) => updateBudget({ ingreso_2: v })} />
+          <IncomeField label="Ingresos adicionales" value={budget?.ingresos_adicionales || 0} onChange={(v) => updateBudget({ ingresos_adicionales: v })} />
         </div>
         <p className="mt-4 font-mono text-sm text-ink/70">
           Total: <span className="text-moss-700 font-medium">${fmt(ingresos)}</span>
         </p>
       </div>
 
-      <HealthBar
-        ingresos={ingresos}
-        basicos={totales.basicos}
-        noEsenciales={totales.noEsenciales}
-        ahorro={totales.ahorro}
-      />
+      <HealthBar ingresos={ingresos} basicos={totales.basicos} noEsenciales={totales.noEsenciales} ahorro={totales.ahorro} />
 
       {/* Categorías */}
       <div>
         <p className="text-xs uppercase tracking-wide text-ink/40 mb-3">Gastos por categoría</p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {categories.map((cat) => (
+          {sortedCategories.map((cat) => (
             <CategoryGroup
               key={cat.id}
               category={cat}
@@ -169,19 +188,16 @@ export default function Presupuesto({ userId }: { userId: string }) {
           ))}
         </div>
       </div>
+
+      {/* Panel de configuración de categorías */}
+      {showSettings && (
+        <CategorySettings userId={userId} onClose={() => setShowSettings(false)} />
+      )}
     </div>
   )
 }
 
-function IncomeField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: number
-  onChange: (v: number) => void
-}) {
+function IncomeField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
     <label className="block">
       <span className="block text-xs text-ink/50 mb-1.5">{label}</span>
