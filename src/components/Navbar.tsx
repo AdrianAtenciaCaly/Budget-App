@@ -12,14 +12,25 @@ export default function Navbar({ active, onChange, email, isAdmin, dark, onToggl
   return (
     <header className="border-b border-moss-100/20 bg-paper/80 backdrop-blur-xl sticky top-0 z-10">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+        
+        {/* LOGO SECCIÓN */}
+        <div className="flex items-center gap-2.5">
+          {/* Tu nuevo favicon transparente */}
+          <img 
+            src="/icon.png" 
+            alt="Logo Budget App" 
+            className="w-6 h-6 object-contain"
+          />
+          
+          {/* NOTA: He dejado el SVG original por si acaso. Si prefieres usar SOLO el favicon, puedes borrar estas líneas de abajo (<svg>...</svg>) */}
+          <svg width="18" height="18" viewBox="0 0 28 28" fill="none" className="hidden">
             <path d="M14 2 L14 26 M14 2 L22 10 M14 2 L6 10" stroke="#2f5440" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span className="font-display text-lg text-moss-900">Budget App</span>
+
+          <span className="font-display text-lg text-moss-900 font-semibold">Budget App</span>
         </div>
-          <nav className="hidden sm:flex items-center gap-1 rounded-full p-1
-          bg-moss-100/20 border border-moss-100/10 backdrop-blur">
+
+        <nav className="hidden sm:flex items-center gap-1 rounded-full p-1 bg-moss-100/20 border border-moss-100/10 backdrop-blur">
           <TabButton active={active === 'presupuesto'} onClick={() => onChange('presupuesto')}>
             Presupuesto
           </TabButton>
