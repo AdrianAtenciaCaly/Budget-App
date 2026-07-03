@@ -1,5 +1,6 @@
 -- ============================================================
--- Migración: pagado por item + preferencias de categorías por usuario
+-- 04) Migración: pagado por item + preferencias de categorías por usuario
+-- Ejecuta DESPUÉS de 03_migration_categories_rlsADD.sql, en: Supabase Dashboard > SQL Editor
 -- ============================================================
 
 -- 1) Campo pagado en cada línea de gasto

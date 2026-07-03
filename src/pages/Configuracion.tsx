@@ -150,6 +150,12 @@ function PreferenciasTab({
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [success, setSuccess] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const [addingNew, setAddingNew] = useState(false)
+    const [newCat, setNewCat] = useState({ label: '', tipo: 'basico' as CategoriaTipo })
+    const [creating, setCreating] = useState(false)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
 
     useEffect(() => {
         load()
@@ -219,6 +225,47 @@ function PreferenciasTab({
         }
     }
 
+    async function createCategory() {
+        if (!newCat.label.trim()) return
+        setCreating(true)
+        setError(null)
+
+        const slug = newCat.label.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+        // Sufijo único por usuario para que dos personas puedan crear una categoría con el mismo nombre
+        const id = `u_${slug}_${userId.slice(0, 8)}_${Date.now().toString(36)}`
+        const maxOrder = Math.max(0, ...cats.map((c) => c.orden))
+
+        const { error: err } = await supabase.from('categories').insert({
+            id,
+            label: newCat.label.trim(),
+            tipo: newCat.tipo,
+            orden: maxOrder + 1,
+            user_id: userId,
+        })
+
+        if (err) {
+            setError(err.message)
+        } else {
+            setNewCat({ label: '', tipo: 'basico' })
+            setAddingNew(false)
+            await load()
+        }
+        setCreating(false)
+    }
+
+    async function deleteOwnCategory(id: string) {
+        if (!confirm('¿Eliminar esta categoría? Si ya tiene gastos registrados no se podrá borrar.')) return
+        setDeletingId(id)
+        setError(null)
+        const { error: err } = await supabase.from('categories').delete().eq('id', id)
+        if (err) {
+            setError('No se pudo eliminar: probablemente ya tiene gastos registrados.')
+        } else {
+            setCats((prev) => prev.filter((c) => c.id !== id))
+        }
+        setDeletingId(null)
+    }
+
     if (loading) return <div className="py-8 text-center text-ink/40 text-sm">Cargando preferencias…</div>
 
     return (
@@ -253,69 +300,133 @@ function PreferenciasTab({
                 <p className="text-xs text-ink/40 mt-0.5">Ordena y decide cuáles de las categorías del presupuesto deseas ver o esconder.</p>
             </div>
 
+            {error && <p className="text-sm text-wine bg-wine/10 border border-wine/20 rounded-lg px-4 py-3">{error}</p>}
+
             <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
-                {cats.map((cat, idx) => (
-                    <div
-                        key={cat.id}
-                        className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition ${cat.visible ? 'bg-white border-moss-100 hover:border-moss-200' : 'bg-ink/5 border-transparent opacity-50'
-                            }`}
-                    >
-                        {/* Ordenadores */}
-                        <div className="flex flex-col gap-0.5">
-                            <button
-                                onClick={() => moveUp(idx)}
-                                disabled={idx === 0}
-                                className="text-ink/30 hover:text-ink/75 disabled:opacity-20 transition leading-none p-0.5"
-                                title="Subir orden"
-                            >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="18 15 12 9 6 15" />
-                                </svg>
-                            </button>
-                            <button
-                                onClick={() => moveDown(idx)}
-                                disabled={idx === cats.length - 1}
-                                className="text-ink/30 hover:text-ink/75 disabled:opacity-20 transition leading-none p-0.5"
-                                title="Bajar orden"
-                            >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        {/* Nombre y tipo */}
-                        <div className="flex-1 min-w-0">
-                            <span className="font-display text-sm font-medium text-ink block sm:inline">{cat.label}</span>
-                            <span className="sm:ml-3 text-[10px] uppercase tracking-wide text-ink/40 px-1.5 py-0.5 border border-moss-200 rounded-full inline-block mt-1 sm:mt-0">
-                                {cat.tipo === 'basico' ? 'Básico' : cat.tipo === 'ahorro' ? 'Ahorro' : 'No esencial'}
-                            </span>
-                        </div>
-
-                        {/* Toggle visible */}
-                        <button
-                            onClick={() => toggleVisible(cat.id)}
-                            title={cat.visible ? 'Ocultar' : 'Mostrar'}
-                            className={`flex-shrink-0 w-9 h-9 rounded-full border flex items-center justify-center transition ${cat.visible
-                                ? 'border-moss-200 text-moss-600 hover:bg-moss-50'
-                                : 'border-ink/10 text-ink/30 hover:text-ink/65 hover:bg-ink/5'
+                {cats.map((cat, idx) => {
+                    const isOwn = cat.user_id === userId
+                    return (
+                        <div
+                            key={cat.id}
+                            className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition ${cat.visible ? 'bg-white border-moss-100 hover:border-moss-200' : 'bg-ink/5 border-transparent opacity-50'
                                 }`}
                         >
-                            {cat.visible ? (
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-                                </svg>
-                            ) : (
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                                    <line x1="1" y1="1" x2="23" y2="23" />
-                                </svg>
+                            {/* Ordenadores */}
+                            <div className="flex flex-col gap-0.5">
+                                <button
+                                    onClick={() => moveUp(idx)}
+                                    disabled={idx === 0}
+                                    className="text-ink/30 hover:text-ink/75 disabled:opacity-20 transition leading-none p-0.5"
+                                    title="Subir orden"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="18 15 12 9 6 15" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={() => moveDown(idx)}
+                                    disabled={idx === cats.length - 1}
+                                    className="text-ink/30 hover:text-ink/75 disabled:opacity-20 transition leading-none p-0.5"
+                                    title="Bajar orden"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="6 9 12 15 18 9" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Nombre y tipo */}
+                            <div className="flex-1 min-w-0">
+                                <span className="font-display text-sm font-medium text-ink block sm:inline">{cat.label}</span>
+                                <span className="sm:ml-3 text-[10px] uppercase tracking-wide text-ink/40 px-1.5 py-0.5 border border-moss-200 rounded-full inline-block mt-1 sm:mt-0">
+                                    {cat.tipo === 'basico' ? 'Básico' : cat.tipo === 'ahorro' ? 'Ahorro' : 'No esencial'}
+                                </span>
+                                {isOwn && (
+                                    <span className="sm:ml-1.5 text-[10px] text-moss-600 inline-block mt-1 sm:mt-0">· Tuya</span>
+                                )}
+                            </div>
+
+                            {/* Toggle visible */}
+                            <button
+                                onClick={() => toggleVisible(cat.id)}
+                                title={cat.visible ? 'Ocultar' : 'Mostrar'}
+                                className={`flex-shrink-0 w-9 h-9 rounded-full border flex items-center justify-center transition ${cat.visible
+                                    ? 'border-moss-200 text-moss-600 hover:bg-moss-50'
+                                    : 'border-ink/10 text-ink/30 hover:text-ink/65 hover:bg-ink/5'
+                                    }`}
+                            >
+                                {cat.visible ? (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                ) : (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                        <line x1="1" y1="1" x2="23" y2="23" />
+                                    </svg>
+                                )}
+                            </button>
+
+                            {/* Eliminar (solo si es propia) */}
+                            {isOwn && (
+                                <button
+                                    onClick={() => deleteOwnCategory(cat.id)}
+                                    disabled={deletingId === cat.id}
+                                    title="Eliminar categoría propia"
+                                    className="flex-shrink-0 text-ink/20 hover:text-clay transition px-1 text-sm"
+                                >
+                                    {deletingId === cat.id ? '…' : '×'}
+                                </button>
                             )}
+                        </div>
+                    )
+                })}
+            </div>
+
+            {/* Crear categoría propia */}
+            {addingNew ? (
+                <div className="border border-moss-300 rounded-xl p-4 space-y-3">
+                    <p className="text-xs text-ink/50">Solo tú verás esta categoría.</p>
+                    <input
+                        value={newCat.label}
+                        onChange={(e) => setNewCat((v) => ({ ...v, label: e.target.value }))}
+                        placeholder="Ej: Suscripciones"
+                        className="w-full border border-moss-100 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-moss-300"
+                    />
+                    <select
+                        value={newCat.tipo}
+                        onChange={(e) => setNewCat((v) => ({ ...v, tipo: e.target.value as CategoriaTipo }))}
+                        className="w-full border border-moss-100 rounded-lg px-3 py-2 text-sm bg-white outline-none"
+                    >
+                        {CATEGORY_TYPES.map((t) => (
+                            <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                    </select>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={createCategory}
+                            disabled={creating || !newCat.label.trim()}
+                            className="flex-1 bg-moss-600 hover:bg-moss-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition"
+                        >
+                            {creating ? 'Creando…' : 'Crear'}
+                        </button>
+                        <button
+                            onClick={() => { setAddingNew(false); setError(null) }}
+                            className="px-4 border border-moss-100 rounded-lg text-sm text-ink/50 hover:text-ink/80 transition"
+                        >
+                            Cancelar
                         </button>
                     </div>
-                ))}
-            </div>
+                </div>
+            ) : (
+                <button
+                    onClick={() => setAddingNew(true)}
+                    className="w-full border border-dashed border-moss-200 rounded-xl py-3 text-sm text-moss-600 hover:bg-moss-50 transition"
+                >
+                    + Crear categoría propia
+                </button>
+            )}
 
             <div className="flex items-center gap-3 border-t border-moss-100 pt-4 mt-2">
                 <button

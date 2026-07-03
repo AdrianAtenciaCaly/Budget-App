@@ -1,7 +1,7 @@
 -- ============================================================
--- Migración: políticas RLS para que el admin pueda
+-- 03) Migración: políticas RLS para que el admin pueda
 -- insertar, actualizar y eliminar categorías
--- Ejecuta en: Supabase Dashboard > SQL Editor
+-- Ejecuta DESPUÉS de 02_migration_admin.sql, en: Supabase Dashboard > SQL Editor
 -- ============================================================
 
 create policy "categories: admin - insert" on public.categories

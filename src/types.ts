@@ -7,6 +7,7 @@ export interface Category {
   label: string
   tipo: CategoriaTipo
   orden: number
+  user_id: string | null
 }
 
 export interface Budget {

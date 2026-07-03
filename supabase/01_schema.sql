@@ -1,6 +1,6 @@
 -- ============================================================
--- Budget App — Esquema de base de datos (Supabase / Postgres)
--- Ejecuta este archivo completo en: Supabase Dashboard > SQL Editor
+-- 01) Budget App — Esquema de base de datos (Supabase / Postgres)
+-- Ejecuta este archivo PRIMERO en: Supabase Dashboard > SQL Editor
 -- ============================================================
 
 -- 1) Categorías fijas de gasto (basadas en tu plantilla original)

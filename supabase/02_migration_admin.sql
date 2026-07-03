@@ -1,6 +1,6 @@
 -- ============================================================
--- Migración: perfiles de usuario + detección de uso de categorías
--- Ejecuta en: Supabase Dashboard > SQL Editor
+-- 02) Migración: perfiles de usuario + detección de uso de categorías
+-- Ejecuta DESPUÉS de 01_schema.sql, en: Supabase Dashboard > SQL Editor
 -- ============================================================
 
 -- 1) Tabla de perfiles (is_admin = false por defecto)
