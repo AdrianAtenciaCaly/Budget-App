@@ -19,3 +19,19 @@ export function getStoredCurrency(): Currency {
 export function setStoredCurrency(code: string) {
     localStorage.setItem('budget_app_currency', code)
 }
+
+// ─── Formatters (DRY) ─────────────────────────────────────────────────────────
+
+/** Formatea un número como moneda completa (ej: "$1.200.000"). */
+export function formatCurrency(n: number, currency: Currency): string {
+    return n.toLocaleString(currency.locale, {
+        style: 'currency',
+        currency: currency.code,
+        maximumFractionDigits: 0,
+    })
+}
+
+/** Formatea un número con separadores de miles según el locale (sin símbolo de moneda). */
+export function formatNumber(n: number, currency: Currency): string {
+    return n.toLocaleString(currency.locale)
+}

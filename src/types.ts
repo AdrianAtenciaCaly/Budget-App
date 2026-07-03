@@ -1,3 +1,5 @@
+export type AppTab = 'presupuesto' | 'proyeccion' | 'configuracion'
+
 export type CategoriaTipo = 'basico' | 'no_esencial' | 'ahorro'
 
 export interface Category {
