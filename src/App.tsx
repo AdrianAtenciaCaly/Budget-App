@@ -4,13 +4,13 @@ import { supabase } from './lib/supabaseClient'
 import Login from './pages/Login'
 import Presupuesto from './pages/Presupuesto'
 import Proyeccion from './pages/Proyeccion'
-import AdminCategories from './pages/AdminCategorias'
+import Configuracion from './pages/Configuracion'
 import Navbar from './components/Navbar'
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [checking, setChecking] = useState(true)
-  const [tab, setTab] = useState<'presupuesto' | 'proyeccion' | 'admin'>('presupuesto')
+  const [tab, setTab] = useState<'presupuesto' | 'proyeccion' | 'configuracion'>('presupuesto')
   const [isAdmin, setIsAdmin] = useState(false)
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark')
 
@@ -61,7 +61,7 @@ export default function App() {
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
         {tab === 'presupuesto' && <Presupuesto userId={session.user.id} />}
         {tab === 'proyeccion' && <Proyeccion userId={session.user.id} />}
-        {tab === 'admin' && isAdmin && <AdminCategories />}
+        {tab === 'configuracion' && <Configuracion userId={session.user.id} isAdmin={isAdmin} />}
       </main>
       <footer className="border-t border-moss-100/20 mt-12 py-5 text-center bg-paper/40">
         <p className="text-xs text-ink/30">

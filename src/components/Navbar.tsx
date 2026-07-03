@@ -1,6 +1,6 @@
 interface Props {
-  active: 'presupuesto' | 'proyeccion' | 'admin'
-  onChange: (tab: 'presupuesto' | 'proyeccion' | 'admin') => void
+  active: 'presupuesto' | 'proyeccion' | 'configuracion'
+  onChange: (tab: 'presupuesto' | 'proyeccion' | 'configuracion') => void
   email: string
   isAdmin: boolean
   dark: boolean
@@ -37,11 +37,9 @@ export default function Navbar({ active, onChange, email, isAdmin, dark, onToggl
           <TabButton active={active === 'proyeccion'} onClick={() => onChange('proyeccion')}>
             Proyección
           </TabButton>
-          {isAdmin && (
-            <TabButton active={active === 'admin'} onClick={() => onChange('admin')}>
-               Categorías
-            </TabButton>
-          )}
+          <TabButton active={active === 'configuracion'} onClick={() => onChange('configuracion')}>
+            Configuración
+          </TabButton>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -89,11 +87,9 @@ export default function Navbar({ active, onChange, email, isAdmin, dark, onToggl
         <TabButton active={active === 'proyeccion'} onClick={() => onChange('proyeccion')}>
           Proyección
         </TabButton>
-        {isAdmin && (
-          <TabButton active={active === 'admin'} onClick={() => onChange('admin')}>
-            ⚙ Categorías
-          </TabButton>
-        )}
+        <TabButton active={active === 'configuracion'} onClick={() => onChange('configuracion')}>
+          ⚙ Configuración
+        </TabButton>
       </nav>
     </header>
   )
