@@ -1,9 +1,10 @@
+// src/pages/Presupuesto.tsx
 import { useMemo, useState, useEffect } from 'react'
 import { useBudgetMonth, monthKey } from '../lib/useBudgetMonth'
 import MonthSelector from '../components/MonthSelector'
 import HealthBar from '../components/HealthBar'
 import CategoryGroup from '../components/CategoryGroup'
-import CategorySettings from '../components/CategorySettings'
+import SettingsPanel from '../components/SettingsPanel'
 import { supabase } from '../lib/supabaseClient'
 import { UserCategoryPref } from '../types'
 
@@ -11,8 +12,6 @@ const MESES_LARGOS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
-
-const fmt = (n: number) => n.toLocaleString('es-CO')
 
 export default function Presupuesto({ userId }: { userId: string }) {
   const [mesDate, setMesDate] = useState(new Date())
@@ -34,7 +33,7 @@ export default function Presupuesto({ userId }: { userId: string }) {
       .select('*')
       .eq('user_id', userId)
       .then(({ data }) => setPrefs(data ?? []))
-  }, [userId, showSettings]) // recarga cuando cierra el panel de settings
+  }, [userId, showSettings]) // recarga cuando cierra el panel de configuración
 
   const monthOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = []
@@ -105,12 +104,12 @@ export default function Presupuesto({ userId }: { userId: string }) {
           <button
             onClick={() => setShowSettings(true)}
             className="text-sm border border-moss-100 hover:bg-moss-50 rounded-full px-4 py-2 transition text-ink/70 flex items-center gap-1.5"
-            title="Configurar categorías"
+            title="Configuración"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
-            Categorías
+            Configuración
           </button>
           <button
             onClick={() => setShowCopy((v) => !v)}
@@ -157,19 +156,6 @@ export default function Presupuesto({ userId }: { userId: string }) {
         </div>
       )}
 
-      {/* Ingresos */}
-      <div className="bg-white/70 border border-moss-100 rounded-2xl p-6">
-        <p className="text-xs uppercase tracking-wide text-ink/40 mb-4">Ingresos del mes</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <IncomeField label="Ingreso 1" value={budget?.ingreso_1 || 0} onChange={(v) => updateBudget({ ingreso_1: v })} />
-          <IncomeField label="Ingreso 2" value={budget?.ingreso_2 || 0} onChange={(v) => updateBudget({ ingreso_2: v })} />
-          <IncomeField label="Ingresos adicionales" value={budget?.ingresos_adicionales || 0} onChange={(v) => updateBudget({ ingresos_adicionales: v })} />
-        </div>
-        <p className="mt-4 font-mono text-sm text-ink/70">
-          Total: <span className="text-moss-700 font-medium">${fmt(ingresos)}</span>
-        </p>
-      </div>
-
       <HealthBar ingresos={ingresos} basicos={totales.basicos} noEsenciales={totales.noEsenciales} ahorro={totales.ahorro} />
 
       {/* Categorías */}
@@ -189,28 +175,15 @@ export default function Presupuesto({ userId }: { userId: string }) {
         </div>
       </div>
 
-      {/* Panel de configuración de categorías */}
+      {/* Panel de configuración (ingresos + categorías) */}
       {showSettings && (
-        <CategorySettings userId={userId} onClose={() => setShowSettings(false)} />
+        <SettingsPanel
+          userId={userId}
+          budget={budget}
+          onUpdateBudget={updateBudget}
+          onClose={() => setShowSettings(false)}
+        />
       )}
     </div>
-  )
-}
-
-function IncomeField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
-  return (
-    <label className="block">
-      <span className="block text-xs text-ink/50 mb-1.5">{label}</span>
-      <div className="flex items-center gap-1 border border-moss-100 rounded-lg px-3 py-2 bg-white focus-within:ring-2 focus-within:ring-moss-300">
-        <span className="text-xs text-ink/30">$</span>
-        <input
-          type="number"
-          value={value || ''}
-          onChange={(e) => onChange(Number(e.target.value) || 0)}
-          placeholder="0"
-          className="w-full bg-transparent text-sm font-mono outline-none"
-        />
-      </div>
-    </label>
   )
 }
