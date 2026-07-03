@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Category, ExpenseItem } from '../types'
+import { Currency } from '../lib/currencies'
 
 interface Props {
   category: Category
@@ -7,14 +8,14 @@ interface Props {
   onAdd: () => void
   onUpdate: (id: string, patch: Partial<ExpenseItem>) => void
   onDelete: (id: string) => void
+  currency: Currency
 }
 
-const fmt = (n: number) => n.toLocaleString('es-CO')
-
-export default function CategoryGroup({ category, items, onAdd, onUpdate, onDelete }: Props) {
+export default function CategoryGroup({ category, items, onAdd, onUpdate, onDelete, currency }: Props) {
   const [collapsed, setCollapsed] = useState(false)
   const totalPresupuestado = items.reduce((s, i) => s + (i.valor_presupuestado || 0), 0)
   const pagados = items.filter((i) => i.pagado).length
+  const fmt = (n: number) => n.toLocaleString(currency.locale)
 
   return (
     <div className="border border-moss-100 rounded-xl bg-white/60 overflow-hidden">
@@ -37,18 +38,17 @@ export default function CategoryGroup({ category, items, onAdd, onUpdate, onDele
             {category.tipo === 'basico' ? 'Básico' : category.tipo === 'ahorro' ? 'Ahorro' : 'No esencial'}
           </span>
           {items.length > 0 && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-              pagados === items.length
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${pagados === items.length
                 ? 'bg-moss-100 text-moss-700'
                 : pagados > 0
-                ? 'bg-amber-400/20 text-amber-500'
-                : 'bg-ink/5 text-ink/40'
-            }`}>
+                  ? 'bg-amber-400/20 text-amber-500'
+                  : 'bg-ink/5 text-ink/40'
+              }`}>
               {pagados}/{items.length}
             </span>
           )}
         </div>
-        <div className="font-mono text-sm text-ink/70">${fmt(totalPresupuestado)}</div>
+        <div className="font-mono text-sm text-ink/70">{currency.symbol}{fmt(totalPresupuestado)}</div>
       </button>
 
       {!collapsed && (
@@ -61,15 +61,14 @@ export default function CategoryGroup({ category, items, onAdd, onUpdate, onDele
                 <button
                   onClick={() => onUpdate(item.id, { pagado: !item.pagado })}
                   title={item.pagado ? 'Marcar como pendiente' : 'Marcar como pagado'}
-                  className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${
-                    item.pagado
+                  className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${item.pagado
                       ? 'bg-moss-600 border-moss-600'
                       : 'border-moss-200 hover:border-moss-400'
-                  }`}
+                    }`}
                 >
                   {item.pagado && (
                     <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                 </button>
@@ -79,23 +78,21 @@ export default function CategoryGroup({ category, items, onAdd, onUpdate, onDele
                   value={item.concepto}
                   onChange={(e) => onUpdate(item.id, { concepto: e.target.value })}
                   placeholder="Concepto"
-                  className={`flex-1 bg-transparent text-sm outline-none placeholder:text-ink/30 transition ${
-                    item.pagado ? 'line-through text-ink/40' : ''
-                  }`}
+                  className={`flex-1 bg-transparent text-sm outline-none placeholder:text-ink/30 transition ${item.pagado ? 'line-through text-ink/40' : ''
+                    }`}
                 />
 
                 {/* Badge estado */}
-                <span className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                  item.pagado
+                <span className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium ${item.pagado
                     ? 'bg-moss-100 text-moss-700'
                     : 'bg-amber-400/15 text-amber-500'
-                }`}>
+                  }`}>
                   {item.pagado ? 'Pagado' : 'Pendiente'}
                 </span>
 
                 {/* Valor */}
                 <div className="flex items-center gap-0.5">
-                  <span className="text-xs text-ink/30">$</span>
+                  <span className="text-xs text-ink/30">{currency.symbol}</span>
                   <input
                     type="number"
                     value={item.valor_presupuestado || ''}

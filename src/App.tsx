@@ -6,12 +6,14 @@ import Presupuesto from './pages/Presupuesto'
 import Proyeccion from './pages/Proyeccion'
 import Configuracion from './pages/Configuracion'
 import Navbar from './components/Navbar'
+import { Currency, getStoredCurrency } from './lib/currencies'
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [checking, setChecking] = useState(true)
   const [tab, setTab] = useState<'presupuesto' | 'proyeccion' | 'configuracion'>('presupuesto')
   const [isAdmin, setIsAdmin] = useState(false)
+  const [currency, setCurrency] = useState<Currency>(getStoredCurrency())
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark')
 
   // Aplica / quita la clase dark en el html
@@ -59,9 +61,16 @@ export default function App() {
         onSignOut={() => supabase.auth.signOut()}
       />
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
-        {tab === 'presupuesto' && <Presupuesto userId={session.user.id} />}
-        {tab === 'proyeccion' && <Proyeccion userId={session.user.id} />}
-        {tab === 'configuracion' && <Configuracion userId={session.user.id} isAdmin={isAdmin} />}
+        {tab === 'presupuesto' && <Presupuesto userId={session.user.id} currency={currency} />}
+        {tab === 'proyeccion' && <Proyeccion userId={session.user.id} currency={currency} />}
+        {tab === 'configuracion' && (
+          <Configuracion
+            userId={session.user.id}
+            isAdmin={isAdmin}
+            currency={currency}
+            onCurrencyChange={(newCurr: Currency) => setCurrency(newCurr)}
+          />
+        )}
       </main>
       <footer className="border-t border-moss-100/20 mt-12 py-5 text-center bg-paper/40">
         <p className="text-xs text-ink/30">

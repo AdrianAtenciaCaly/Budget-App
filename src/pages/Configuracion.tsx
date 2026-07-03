@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import { Category, CategoriaTipo, UserCategoryPref } from '../types'
 import { useBudgetMonth, monthKey } from '../lib/useBudgetMonth'
 import MonthSelector from '../components/MonthSelector'
+import { Currency, CURRENCIES, setStoredCurrency } from '../lib/currencies'
 
 interface CatWithPref extends Category {
     visible: boolean
@@ -24,11 +25,13 @@ const CATEGORY_TYPES: { value: CategoriaTipo; label: string }[] = [
 interface Props {
     userId: string
     isAdmin: boolean
+    currency: Currency
+    onCurrencyChange: (c: Currency) => void
 }
 
 type TabType = 'ingresos' | 'preferencias' | 'admin_categorias'
 
-export default function Configuracion({ userId, isAdmin }: Props) {
+export default function Configuracion({ userId, isAdmin, currency, onCurrencyChange }: Props) {
     const [activeTab, setActiveTab] = useState<TabType>('ingresos')
 
     return (
@@ -58,8 +61,14 @@ export default function Configuracion({ userId, isAdmin }: Props) {
 
             {/* Contenedor central de contenido */}
             <div className="bg-white/70 border border-moss-100 rounded-2xl p-6 shadow-sm">
-                {activeTab === 'ingresos' && <IngresosTab userId={userId} />}
-                {activeTab === 'preferencias' && <PreferenciasTab userId={userId} />}
+                {activeTab === 'ingresos' && <IngresosTab userId={userId} currency={currency} />}
+                {activeTab === 'preferencias' && (
+                    <PreferenciasTab
+                        userId={userId}
+                        currency={currency}
+                        onCurrencyChange={onCurrencyChange}
+                    />
+                )}
                 {activeTab === 'admin_categorias' && isAdmin && <AdminCategoriasTab />}
             </div>
         </div>
@@ -68,13 +77,13 @@ export default function Configuracion({ userId, isAdmin }: Props) {
 
 /* ────────────────────────── Tab: Ingresos ────────────────────────── */
 
-function IngresosTab({ userId }: { userId: string }) {
+function IngresosTab({ userId, currency }: { userId: string; currency: Currency }) {
     const [mesDate, setMesDate] = useState(new Date())
     const mes = monthKey(mesDate)
     const { budget, loading, updateBudget } = useBudgetMonth(userId, mes)
 
     const total = (budget?.ingreso_1 || 0) + (budget?.ingreso_2 || 0) + (budget?.ingresos_adicionales || 0)
-    const fmt = (n: number) => n.toLocaleString('es-CO')
+    const fmt = (n: number) => n.toLocaleString(currency.locale)
 
     if (loading) return <div className="py-8 text-center text-ink/40 text-sm">Cargando ingresos…</div>
 
@@ -89,30 +98,31 @@ function IngresosTab({ userId }: { userId: string }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <IncomeField label="Ingreso 1" value={budget?.ingreso_1 || 0} onChange={(v) => updateBudget({ ingreso_1: v })} />
-                <IncomeField label="Ingreso 2" value={budget?.ingreso_2 || 0} onChange={(v) => updateBudget({ ingreso_2: v })} />
+                <IncomeField label="Ingreso 1" value={budget?.ingreso_1 || 0} onChange={(v) => updateBudget({ ingreso_1: v })} currency={currency} />
+                <IncomeField label="Ingreso 2" value={budget?.ingreso_2 || 0} onChange={(v) => updateBudget({ ingreso_2: v })} currency={currency} />
                 <IncomeField
                     label="Ingresos adicionales"
                     value={budget?.ingresos_adicionales || 0}
                     onChange={(v) => updateBudget({ ingresos_adicionales: v })}
+                    currency={currency}
                 />
             </div>
 
             <div className="p-4 bg-moss-50/50 border border-moss-100/50 rounded-xl flex items-center justify-between">
                 <span className="text-sm text-ink/60">Total Ingresos para este mes:</span>
-                <span className="font-mono text-lg font-semibold text-moss-700">${fmt(total)}</span>
+                <span className="font-mono text-lg font-semibold text-moss-700">{currency.symbol}{fmt(total)}</span>
             </div>
             <p className="text-xs text-ink/30 italic">Los cambios se guardan de forma automática en tiempo real.</p>
         </div>
     )
 }
 
-function IncomeField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function IncomeField({ label, value, onChange, currency }: { label: string; value: number; onChange: (v: number) => void; currency: Currency }) {
     return (
         <label className="block">
             <span className="block text-xs text-ink/50 mb-1.5">{label}</span>
             <div className="flex items-center gap-1.5 border border-moss-100 rounded-lg px-3 py-2 bg-white focus-within:ring-2 focus-within:ring-moss-300 transition">
-                <span className="text-xs text-ink/30 font-medium">$</span>
+                <span className="text-xs text-ink/30 font-medium">{currency.symbol}</span>
                 <input
                     type="number"
                     value={value || ''}
@@ -127,7 +137,15 @@ function IncomeField({ label, value, onChange }: { label: string; value: number;
 
 /* ────────────────────────── Tab: Preferencias (Orden/Visibilidad) ────────────────────────── */
 
-function PreferenciasTab({ userId }: { userId: string }) {
+function PreferenciasTab({
+    userId,
+    currency,
+    onCurrencyChange,
+}: {
+    userId: string
+    currency: Currency
+    onCurrencyChange: (c: Currency) => void
+}) {
     const [cats, setCats] = useState<CatWithPref[]>([])
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -204,7 +222,32 @@ function PreferenciasTab({ userId }: { userId: string }) {
     if (loading) return <div className="py-8 text-center text-ink/40 text-sm">Cargando preferencias…</div>
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
+            {/* Ajuste de Moneda */}
+            <div className="border-b border-moss-100 pb-5 mb-2">
+                <h3 className="font-display text-sm font-semibold text-ink mb-1">Moneda de la Cuenta</h3>
+                <p className="text-xs text-ink/40 mb-3">Elige la moneda preferida para visualizar e ingresar montos en la aplicación.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <select
+                        value={currency.code}
+                        onChange={(e) => {
+                            const found = CURRENCIES.find((c) => c.code === e.target.value)
+                            if (found) {
+                                setStoredCurrency(found.code)
+                                onCurrencyChange(found)
+                            }
+                        }}
+                        className="border border-moss-100 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-moss-300 w-full sm:w-64"
+                    >
+                        {CURRENCIES.map((curr) => (
+                            <option key={curr.code} value={curr.code}>
+                                {curr.label} ({curr.symbol})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             <div>
                 <h2 className="font-display text-base font-medium text-ink">Preferencias de Categorías</h2>
                 <p className="text-xs text-ink/40 mt-0.5">Ordena y decide cuáles de las categorías del presupuesto deseas ver o esconder.</p>

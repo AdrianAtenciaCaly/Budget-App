@@ -1,14 +1,16 @@
+import { Currency } from '../lib/currencies'
+
 interface Props {
   ingresos: number
   basicos: number
   noEsenciales: number
   ahorro: number
+  currency: Currency
 }
 
-const fmt = (n: number) =>
-  n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
-
-export default function HealthBar({ ingresos, basicos, noEsenciales, ahorro }: Props) {
+export default function HealthBar({ ingresos, basicos, noEsenciales, ahorro, currency }: Props) {
+  const fmt = (n: number) =>
+    n.toLocaleString(currency.locale, { style: 'currency', currency: currency.code, maximumFractionDigits: 0 })
   const total = basicos + noEsenciales + ahorro
   const sobrante = ingresos - total
   const safe = ingresos > 0 ? ingresos : 1

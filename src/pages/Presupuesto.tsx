@@ -6,13 +6,14 @@ import HealthBar from '../components/HealthBar'
 import CategoryGroup from '../components/CategoryGroup'
 import { supabase } from '../lib/supabaseClient'
 import { UserCategoryPref } from '../types'
+import { Currency } from '../lib/currencies'
 
 const MESES_LARGOS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
 
-export default function Presupuesto({ userId }: { userId: string }) {
+export default function Presupuesto({ userId, currency }: { userId: string; currency: Currency }) {
   const [mesDate, setMesDate] = useState(new Date())
   const mes = monthKey(mesDate)
   const { budget, items, categories, loading, updateBudget, addItem, updateItem, deleteItem, copyFromMonth } =
@@ -144,7 +145,7 @@ export default function Presupuesto({ userId }: { userId: string }) {
         </div>
       )}
 
-      <HealthBar ingresos={ingresos} basicos={totales.basicos} noEsenciales={totales.noEsenciales} ahorro={totales.ahorro} />
+      <HealthBar ingresos={ingresos} basicos={totales.basicos} noEsenciales={totales.noEsenciales} ahorro={totales.ahorro} currency={currency} />
 
       {/* Categorías */}
       <div>
@@ -158,6 +159,7 @@ export default function Presupuesto({ userId }: { userId: string }) {
               onAdd={() => addItem(cat.id)}
               onUpdate={updateItem}
               onDelete={deleteItem}
+              currency={currency}
             />
           ))}
         </div>

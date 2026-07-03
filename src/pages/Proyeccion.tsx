@@ -3,8 +3,9 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContai
 import { supabase } from '../lib/supabaseClient'
 import { monthKey } from '../lib/useBudgetMonth'
 
+import { Currency } from '../lib/currencies'
+
 const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-const fmt = (n: number) => n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 
 interface Row {
   mes: string
@@ -15,10 +16,13 @@ interface Row {
   disponible: number
 }
 
-export default function Proyeccion({ userId }: { userId: string }) {
+export default function Proyeccion({ userId, currency }: { userId: string; currency: Currency }) {
   const [rows, setRows] = useState<Row[]>([])
   const [horizonte, setHorizonte] = useState(6)
   const [loading, setLoading] = useState(true)
+
+  const fmt = (n: number) =>
+    n.toLocaleString(currency.locale, { style: 'currency', currency: currency.code, maximumFractionDigits: 0 })
 
   useEffect(() => {
     let cancelled = false
