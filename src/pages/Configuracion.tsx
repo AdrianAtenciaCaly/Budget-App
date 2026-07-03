@@ -254,8 +254,8 @@ function PreferenciasTab({ userId }: { userId: string }) {
                             onClick={() => toggleVisible(cat.id)}
                             title={cat.visible ? 'Ocultar' : 'Mostrar'}
                             className={`flex-shrink-0 w-9 h-9 rounded-full border flex items-center justify-center transition ${cat.visible
-                                    ? 'border-moss-200 text-moss-600 hover:bg-moss-50'
-                                    : 'border-ink/10 text-ink/30 hover:text-ink/65 hover:bg-ink/5'
+                                ? 'border-moss-200 text-moss-600 hover:bg-moss-50'
+                                : 'border-ink/10 text-ink/30 hover:text-ink/65 hover:bg-ink/5'
                                 }`}
                         >
                             {cat.visible ? (
@@ -482,8 +482,8 @@ function AdminCategoriasTab() {
                                         disabled={cat.inUse || saving === cat.id}
                                         title={cat.inUse ? 'Esta categoría ya tiene gastos registrados' : 'Editar categoría'}
                                         className={`text-xs px-3 py-1.5 rounded-lg border transition ${cat.inUse
-                                                ? 'border-moss-100/50 text-ink/20 cursor-not-allowed bg-transparent'
-                                                : 'border-moss-100 text-ink/50 hover:text-moss-700 hover:border-moss-300 bg-white hover:bg-moss-50/20'
+                                            ? 'border-moss-100/50 text-ink/20 cursor-not-allowed bg-transparent'
+                                            : 'border-moss-100 text-ink/50 hover:text-moss-700 hover:border-moss-300 bg-white hover:bg-moss-50/20'
                                             }`}
                                     >
                                         {cat.inUse ? 'Bloqueado' : 'Editar'}
@@ -493,8 +493,8 @@ function AdminCategoriasTab() {
                                         disabled={cat.inUse || saving === cat.id}
                                         title={cat.inUse ? 'No se puede eliminar una categoría con datos' : 'Eliminar categoría'}
                                         className={`text-xs px-3 py-1.5 rounded-lg border transition ${cat.inUse
-                                                ? 'border-moss-100/50 text-ink/20 cursor-not-allowed bg-transparent'
-                                                : 'border-clay/35 text-clay/55 hover:text-clay hover:border-clay/60 bg-white hover:bg-clay/5'
+                                            ? 'border-moss-100/50 text-ink/20 cursor-not-allowed bg-transparent'
+                                            : 'border-clay/35 text-clay/55 hover:text-clay hover:border-clay/60 bg-white hover:bg-clay/5'
                                             }`}
                                     >
                                         {saving === cat.id ? '…' : 'Eliminar'}
@@ -507,7 +507,7 @@ function AdminCategoriasTab() {
             </div>
 
             {addingNew ? (
-                <div className="bg-moss-50 border border-moss-200 rounded-2xl p-5 space-y-4 animate-slideDown">
+                <div className="bg-white border border-moss-100 rounded-2xl p-5 space-y-4 animate-slideDown">
                     <p className="font-display text-sm font-semibold text-ink">Nueva categoría general</p>
                     <div className="flex flex-wrap items-end gap-3">
                         <div className="flex-1 min-w-[160px]">
@@ -567,8 +567,8 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
         <button
             onClick={onClick}
             className={`flex items-center gap-2 text-xs sm:text-sm px-4 py-2 rounded-full transition font-medium ${active
-                    ? 'bg-white text-moss-700 shadow-sm'
-                    : 'text-ink/50 hover:text-ink/80'
+                ? 'bg-white text-moss-700 shadow-sm'
+                : 'text-ink/50 hover:text-ink/80'
                 }`}
         >
             {children}
