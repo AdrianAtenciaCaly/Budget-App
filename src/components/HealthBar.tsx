@@ -23,6 +23,7 @@ interface HealthBarProps {
   basicos: number
   noEsenciales: number
   ahorro: number
+  gastado: number
   currency: Currency
 }
 
@@ -62,9 +63,8 @@ function Chevron({ expanded }: ChevronProps) {
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={`text-ink/30 transition-transform duration-200 group-hover:text-ink/50 ${
-        expanded ? '' : '-rotate-180'
-      }`}
+      className={`text-ink/30 transition-transform duration-200 group-hover:text-ink/50 ${expanded ? '' : '-rotate-180'
+        }`}
       aria-hidden="true"
     >
       <polyline points="18 15 12 9 6 15" />
@@ -94,7 +94,7 @@ function ProgressBar({ pBasico, pNoEsencial, pAhorro }: ProgressBarProps) {
 
 const STORAGE_KEY = 'healthbar-expanded'
 
-export default function HealthBar({ ingresos, basicos, noEsenciales, ahorro, currency }: HealthBarProps) {
+export default function HealthBar({ ingresos, basicos, noEsenciales, ahorro, gastado, currency }: HealthBarProps) {
   const [expanded, setExpanded] = useLocalStorage<boolean>(STORAGE_KEY, true)
 
   const health = calculateBudgetHealth({ ingresos, basicos, noEsenciales, ahorro })
@@ -109,12 +109,17 @@ export default function HealthBar({ ingresos, basicos, noEsenciales, ahorro, cur
   const sobraLabel = health.sobrante >= 0 ? 'Disponible' : 'Déficit'
   const sobraClass = health.sobrante >= 0 ? 'text-moss-700' : 'text-clay'
 
+  // Consolidado de lo realmente gastado (ítems marcados como "pagado")
+  const saldoLibre = ingresos - gastado
+  const saldoLibreLabel = saldoLibre >= 0 ? 'Saldo libre' : 'Saldo negativo'
+  const saldoLibreClass = saldoLibre >= 0 ? 'text-moss-700' : 'text-clay'
+
   return (
     <section
       className="bg-white/70 border border-moss-100 rounded-2xl p-6"
       aria-label="Estado del mes"
     >
-      {/* ── Header (clickable) ── */}
+      {/* ── Header (clickable) — se mantiene compacto, sin el consolidado ── */}
       <div
         role="button"
         tabIndex={0}
@@ -136,7 +141,7 @@ export default function HealthBar({ ingresos, basicos, noEsenciales, ahorro, cur
         </div>
 
         {/* Right: Surplus / Deficit */}
-        <div className="text-right flex flex-col items-end shrink-0">
+        <div className="text-right shrink-0">
           <p className="text-xs uppercase tracking-wide text-ink/40 mb-1">{sobraLabel}</p>
           <p className={`font-mono text-lg font-medium leading-none ${sobraClass}`}>
             {fmt(Math.abs(health.sobrante))}
@@ -146,9 +151,8 @@ export default function HealthBar({ ingresos, basicos, noEsenciales, ahorro, cur
 
       {/* ── Collapsible body ── */}
       <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-          expanded ? 'max-h-40 opacity-100 mt-5' : 'max-h-0 opacity-0'
-        }`}
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${expanded ? 'max-h-64 opacity-100 mt-5' : 'max-h-0 opacity-0'
+          }`}
         aria-hidden={!expanded}
       >
         <ProgressBar
@@ -158,10 +162,24 @@ export default function HealthBar({ ingresos, basicos, noEsenciales, ahorro, cur
         />
 
         <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-xs">
-          <LegendItem dot="bg-moss-600" label="Básicos"           value={fmt(basicos)} />
-          <LegendItem dot="bg-amber-500" label="No esenciales"    value={fmt(noEsenciales)} />
+          <LegendItem dot="bg-moss-600" label="Básicos" value={fmt(basicos)} />
+          <LegendItem dot="bg-amber-500" label="No esenciales" value={fmt(noEsenciales)} />
           <LegendItem dot="bg-moss-300" label="Ahorro / inversión" value={fmt(ahorro)} />
-          <LegendItem dot="bg-ink/20"   label="Ingresos totales"  value={fmt(ingresos)} />
+          <LegendItem dot="bg-ink/20" label="Ingresos totales" value={fmt(ingresos)} />
+        </div>
+
+        {/* Consolidado de lo gastado y el saldo libre — más abajo, sin dejar hueco en el header */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 mt-4 pt-4 border-t border-moss-100 text-xs">
+          <span className="text-ink/40">
+            Gastado <span className="text-ink/30">(pagado)</span>:{' '}
+            <span className="font-mono text-ink/70">{fmt(gastado)}</span>
+          </span>
+          <span>
+            <span className="text-ink/40">{saldoLibreLabel}: </span>
+            <span className={`font-mono font-medium ${saldoLibreClass}`}>
+              {fmt(Math.abs(saldoLibre))}
+            </span>
+          </span>
         </div>
       </div>
     </section>

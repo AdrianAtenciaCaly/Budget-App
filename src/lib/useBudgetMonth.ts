@@ -27,43 +27,22 @@ export function useBudgetMonth(userId: string | undefined, mes: string) {
       .maybeSingle()
 
     if (!b) {
-      // Si no existe el mes, lo creamos. Si hay un mes anterior, copiamos sus valores presupuestados como punto de partida.
-      const prevDate = new Date(mes)
-      prevDate.setMonth(prevDate.getMonth() - 1)
-      const prevMes = monthKey(prevDate)
-
-      const { data: prevBudget } = await supabase
-        .from('budgets')
-        .select('*, expense_items(*)')
-        .eq('user_id', userId)
-        .eq('mes', prevMes)
-        .maybeSingle()
-
+      // Si no existe el mes, lo creamos vacío. Ya NO se copian automáticamente
+      // los valores del mes anterior: eso ahora solo pasa si el usuario lo pide
+      // explícitamente con "Copiar de otro mes".
       const { data: created } = await supabase
         .from('budgets')
         .insert({
           user_id: userId,
           mes,
-          ingreso_1: prevBudget?.ingreso_1 ?? 0,
-          ingreso_2: prevBudget?.ingreso_2 ?? 0,
-          ingresos_adicionales: prevBudget?.ingresos_adicionales ?? 0,
+          ingreso_1: 0,
+          ingreso_2: 0,
+          ingresos_adicionales: 0,
         })
         .select()
         .single()
 
       b = created
-
-      if (b && prevBudget?.expense_items?.length) {
-        const newItems = prevBudget.expense_items.map((it: ExpenseItem) => ({
-          budget_id: b!.id,
-          user_id: userId,
-          category_id: it.category_id,
-          concepto: it.concepto,
-          valor_presupuestado: it.valor_presupuestado,
-          valor_real: null,
-        }))
-        await supabase.from('expense_items').insert(newItems)
-      }
     }
 
     setBudget(b)

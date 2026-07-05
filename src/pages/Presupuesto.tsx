@@ -64,15 +64,17 @@ export default function Presupuesto({ userId, currency }: { userId: string; curr
     (budget?.ingreso_1 || 0) + (budget?.ingreso_2 || 0) + (budget?.ingresos_adicionales || 0)
 
   const totales = useMemo(() => {
-    let basicos = 0, noEsenciales = 0, ahorro = 0
+    let basicos = 0, noEsenciales = 0, ahorro = 0, gastado = 0
     for (const it of items) {
       const cat = categories.find((c) => c.id === it.category_id)
       if (!cat) continue
       if (cat.tipo === 'basico') basicos += it.valor_presupuestado || 0
       else if (cat.tipo === 'no_esencial') noEsenciales += it.valor_presupuestado || 0
       else ahorro += it.valor_presupuestado || 0
+      // Consolidado de lo realmente gastado: ítems marcados como pagados
+      if (it.pagado) gastado += it.valor_presupuestado || 0
     }
-    return { basicos, noEsenciales, ahorro }
+    return { basicos, noEsenciales, ahorro, gastado }
   }, [items, categories])
 
   // Aplicar preferencias: orden + visibilidad
@@ -145,7 +147,14 @@ export default function Presupuesto({ userId, currency }: { userId: string; curr
         </div>
       )}
 
-      <HealthBar ingresos={ingresos} basicos={totales.basicos} noEsenciales={totales.noEsenciales} ahorro={totales.ahorro} currency={currency} />
+      <HealthBar
+        ingresos={ingresos}
+        basicos={totales.basicos}
+        noEsenciales={totales.noEsenciales}
+        ahorro={totales.ahorro}
+        gastado={totales.gastado}
+        currency={currency}
+      />
 
       {/* Categorías */}
       <div>

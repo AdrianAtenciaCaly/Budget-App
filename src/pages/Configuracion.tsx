@@ -1,9 +1,32 @@
 import { useEffect, useState, useMemo } from 'react'
+import Swal from 'sweetalert2'
 import { supabase } from '../lib/supabaseClient'
 import { Category, CategoriaTipo, UserCategoryPref } from '../types'
 import { useBudgetMonth, monthKey } from '../lib/useBudgetMonth'
 import MonthSelector from '../components/MonthSelector'
 import { Currency, CURRENCIES, setStoredCurrency } from '../lib/currencies'
+
+// Helper compartido: reemplaza el confirm() nativo por un modal de SweetAlert2
+// con los colores de la app (wine para peligro, moss para confirmar).
+async function confirmAction(
+    title: string,
+    text: string,
+    confirmText = 'Eliminar'
+): Promise<boolean> {
+    const result = await Swal.fire({
+        title,
+        text,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: confirmText,
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#7a3b3b',
+        cancelButtonColor: '#9fb3a5',
+        reverseButtons: true,
+        focusCancel: true,
+    })
+    return result.isConfirmed
+}
 
 interface CatWithPref extends Category {
     visible: boolean
@@ -80,10 +103,60 @@ export default function Configuracion({ userId, isAdmin, currency, onCurrencyCha
 function IngresosTab({ userId, currency }: { userId: string; currency: Currency }) {
     const [mesDate, setMesDate] = useState(new Date())
     const mes = monthKey(mesDate)
-    const { budget, loading, updateBudget } = useBudgetMonth(userId, mes)
+    const { budget, loading, updateBudget, reload } = useBudgetMonth(userId, mes)
+
+    const [deleteMonth, setDeleteMonth] = useState('')
+    const [deleting, setDeleting] = useState(false)
+    const [deleteError, setDeleteError] = useState<string | null>(null)
+    const [deleteSuccess, setDeleteSuccess] = useState(false)
 
     const total = (budget?.ingreso_1 || 0) + (budget?.ingreso_2 || 0) + (budget?.ingresos_adicionales || 0)
     const fmt = (n: number) => n.toLocaleString(currency.locale)
+
+    async function deleteMonthData() {
+        if (!deleteMonth) return
+        const label = new Date(`${deleteMonth}-01T00:00:00`).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
+        const ok = await confirmAction(
+            `¿Eliminar los datos de ${label}?`,
+            'Se borrarán todos los ingresos y gastos guardados de ese mes. Esta acción no se puede deshacer.'
+        )
+        if (!ok) return
+
+        setDeleting(true)
+        setDeleteError(null)
+        setDeleteSuccess(false)
+
+        const targetMes = `${deleteMonth}-01`
+        const { data: target, error: findErr } = await supabase
+            .from('budgets')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('mes', targetMes)
+            .maybeSingle()
+
+        if (findErr) {
+            setDeleteError(findErr.message)
+            setDeleting(false)
+            return
+        }
+        if (!target) {
+            setDeleteError('Ese mes no tiene datos guardados.')
+            setDeleting(false)
+            return
+        }
+
+        // Borra el presupuesto del mes; expense_items se elimina en cascada automáticamente
+        const { error: delErr } = await supabase.from('budgets').delete().eq('id', target.id)
+        if (delErr) {
+            setDeleteError(delErr.message)
+        } else {
+            setDeleteSuccess(true)
+            setTimeout(() => setDeleteSuccess(false), 4000)
+            // Si el mes eliminado es el que se está viendo en este momento, refresca los campos
+            if (targetMes === mes) reload()
+        }
+        setDeleting(false)
+    }
 
     if (loading) return <div className="py-8 text-center text-ink/40 text-sm">Cargando ingresos…</div>
 
@@ -113,6 +186,38 @@ function IngresosTab({ userId, currency }: { userId: string; currency: Currency 
                 <span className="font-mono text-lg font-semibold text-moss-700">{currency.symbol}{fmt(total)}</span>
             </div>
             <p className="text-xs text-ink/30 italic">Los cambios se guardan de forma automática en tiempo real.</p>
+
+            {/* Zona de peligro: eliminar datos de un mes específico */}
+            <div className="border-t border-wine/20 pt-5 mt-2">
+                <h3 className="font-display text-sm font-semibold text-wine mb-1">Zona de peligro</h3>
+                <p className="text-xs text-ink/40 mb-3">
+                    Elimina permanentemente los ingresos y gastos guardados de un mes específico — útil si un mes copió datos por error.
+                </p>
+                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                    <label className="block flex-1 max-w-xs">
+                        <span className="block text-xs text-ink/50 mb-1.5">Mes a eliminar</span>
+                        <input
+                            type="month"
+                            value={deleteMonth}
+                            onChange={(e) => { setDeleteMonth(e.target.value); setDeleteError(null) }}
+                            className="w-full border border-moss-100 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-wine/30"
+                        />
+                    </label>
+                    <button
+                        onClick={deleteMonthData}
+                        disabled={!deleteMonth || deleting}
+                        className="bg-wine hover:bg-wine/90 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition"
+                    >
+                        {deleting ? 'Eliminando…' : 'Eliminar datos del mes'}
+                    </button>
+                </div>
+                {deleteError && (
+                    <p className="text-sm text-wine bg-wine/10 rounded-lg px-3 py-2 mt-3">{deleteError}</p>
+                )}
+                {deleteSuccess && (
+                    <p className="text-xs text-moss-700 font-medium mt-3">✓ Datos del mes eliminados correctamente.</p>
+                )}
+            </div>
         </div>
     )
 }
@@ -254,7 +359,11 @@ function PreferenciasTab({
     }
 
     async function deleteOwnCategory(id: string) {
-        if (!confirm('¿Eliminar esta categoría? Si ya tiene gastos registrados no se podrá borrar.')) return
+        const ok = await confirmAction(
+            '¿Eliminar esta categoría?',
+            'Si ya tiene gastos registrados no se podrá borrar.'
+        )
+        if (!ok) return
         setDeletingId(id)
         setError(null)
         const { error: err } = await supabase.from('categories').delete().eq('id', id)
@@ -521,7 +630,11 @@ function AdminCategoriasTab() {
     }
 
     async function deleteCategory(id: string) {
-        if (!confirm('¿Eliminar esta categoría? Esta acción no se puede deshacer.')) return
+        const ok = await confirmAction(
+            '¿Eliminar esta categoría?',
+            'Esta acción no se puede deshacer.'
+        )
+        if (!ok) return
         setSaving(id)
         setError(null)
         const { error: err } = await supabase.from('categories').delete().eq('id', id)
