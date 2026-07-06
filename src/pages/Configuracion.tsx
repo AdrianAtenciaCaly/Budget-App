@@ -52,7 +52,7 @@ interface Props {
     onCurrencyChange: (c: Currency) => void
 }
 
-type TabType = 'ingresos' | 'preferencias' | 'admin_categorias'
+type TabType = 'ingresos' | 'preferencias' | 'admin_resumen' | 'admin_categorias'
 
 export default function Configuracion({ userId, isAdmin, currency, onCurrencyChange }: Props) {
     const [activeTab, setActiveTab] = useState<TabType>('ingresos')
@@ -68,13 +68,18 @@ export default function Configuracion({ userId, isAdmin, currency, onCurrencyCha
             </div>
 
             {/* Selector de pestañas */}
-            <div className="flex gap-1.5 rounded-full p-1 bg-moss-100/20 border border-moss-100/10 backdrop-blur w-fit">
+            <div className="flex flex-wrap gap-1.5 rounded-full p-1 bg-moss-100/20 border border-moss-100/10 backdrop-blur w-fit">
                 <TabButton active={activeTab === 'ingresos'} onClick={() => setActiveTab('ingresos')}>
                     <IconDollar /> Ingresos
                 </TabButton>
                 <TabButton active={activeTab === 'preferencias'} onClick={() => setActiveTab('preferencias')}>
                     <IconGrid /> Preferencias de categorías
                 </TabButton>
+                {isAdmin && (
+                    <TabButton active={activeTab === 'admin_resumen'} onClick={() => setActiveTab('admin_resumen')}>
+                        <IconChart /> Resumen (Administrador)
+                    </TabButton>
+                )}
                 {isAdmin && (
                     <TabButton active={activeTab === 'admin_categorias'} onClick={() => setActiveTab('admin_categorias')}>
                         <IconKey /> Categorías (Administrador)
@@ -92,6 +97,7 @@ export default function Configuracion({ userId, isAdmin, currency, onCurrencyCha
                         onCurrencyChange={onCurrencyChange}
                     />
                 )}
+                {activeTab === 'admin_resumen' && isAdmin && <AdminResumenTab />}
                 {activeTab === 'admin_categorias' && isAdmin && <AdminCategoriasTab />}
             </div>
         </div>
@@ -555,6 +561,96 @@ function PreferenciasTab({
     )
 }
 
+/* ────────────────────────── Tab: Resumen general (Admin Only) ────────────────────────── */
+
+interface DashboardStats {
+    total_usuarios: number
+    total_admins: number
+    total_categorias: number
+    categorias_por_tipo: Record<string, number>
+    total_presupuestos: number
+    total_items_gasto: number
+    usuarios_activos_mes_actual: number
+}
+
+const TIPO_LABELS: Record<string, string> = {
+    basico: 'Básicas',
+    no_esencial: 'No esenciales',
+    ahorro: 'Ahorro',
+}
+
+function AdminResumenTab() {
+    const [stats, setStats] = useState<DashboardStats | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        load()
+    }, [])
+
+    async function load() {
+        setLoading(true)
+        setError(null)
+        const { data, error: err } = await supabase.rpc('admin_dashboard_stats')
+        if (err) {
+            setError(err.message)
+        } else {
+            setStats(data as DashboardStats)
+        }
+        setLoading(false)
+    }
+
+    if (loading) return <div className="py-8 text-center text-ink/40 text-sm">Cargando resumen…</div>
+    if (error) return <p className="text-sm text-wine bg-wine/10 border border-wine/20 rounded-lg px-4 py-3">{error}</p>
+    if (!stats) return null
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <h2 className="font-display text-base font-medium text-ink">Resumen General</h2>
+                <p className="text-xs text-ink/40 mt-0.5">Vista rápida del estado de la aplicación: usuarios, categorías y datos guardados.</p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <StatCard label="Usuarios totales" value={stats.total_usuarios} />
+                <StatCard label="Administradores" value={stats.total_admins} />
+                <StatCard label="Usuarios activos este mes" value={stats.usuarios_activos_mes_actual} />
+                <StatCard label="Categorías totales" value={stats.total_categorias} />
+                <StatCard label="Presupuestos (meses) creados" value={stats.total_presupuestos} />
+                <StatCard label="Líneas de gasto registradas" value={stats.total_items_gasto} />
+            </div>
+
+            <div className="border border-moss-100 rounded-xl p-4 bg-moss-50/20">
+                <p className="text-xs uppercase tracking-wide text-ink/40 mb-3">Categorías por tipo</p>
+                <div className="flex flex-wrap gap-3">
+                    {Object.entries(stats.categorias_por_tipo || {}).map(([tipo, total]) => (
+                        <div key={tipo} className="flex items-center gap-2 border border-moss-100 rounded-lg px-4 py-2 bg-white">
+                            <span className="text-sm text-ink/60">{TIPO_LABELS[tipo] ?? tipo}</span>
+                            <span className="font-mono text-sm text-moss-700 font-medium">{total}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <button
+                onClick={load}
+                className="text-sm border border-moss-100 hover:bg-moss-50 rounded-full px-4 py-2 transition text-ink/70"
+            >
+                Actualizar
+            </button>
+        </div>
+    )
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+    return (
+        <div className="bg-white border border-moss-100 rounded-xl p-4">
+            <p className="text-xs uppercase tracking-wide text-ink/40 mb-1.5">{label}</p>
+            <p className="font-display text-2xl text-ink">{value}</p>
+        </div>
+    )
+}
+
 /* ────────────────────────── Tab: Administrar Categorías (Edición - Admin Only) ────────────────────────── */
 
 function AdminCategoriasTab() {
@@ -865,6 +961,16 @@ function IconKey() {
     return (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+        </svg>
+    )
+}
+
+function IconChart() {
+    return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="20" x2="12" y2="10" />
+            <line x1="18" y1="20" x2="18" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="16" />
         </svg>
     )
 }
