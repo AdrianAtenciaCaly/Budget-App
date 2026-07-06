@@ -66,7 +66,7 @@ export default function Configuracion({ userId, isAdmin, currency, onCurrencyCha
                     Ajusta ingresos del mes, maneja tus preferencias de categorías, o administra las categorías generales del sistema.
                 </p>
             </div>
-
+    
             {/* Selector de pestañas */}
             <div className="flex flex-wrap gap-1.5 rounded-full p-1 bg-moss-100/20 border border-moss-100/10 backdrop-blur w-fit">
                 <TabButton active={activeTab === 'ingresos'} onClick={() => setActiveTab('ingresos')}>
