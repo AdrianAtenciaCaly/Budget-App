@@ -156,6 +156,7 @@ export default function Presupuesto({ userId, currency }: { userId: string; curr
         currency={currency}
       />
 
+
       {/* Categorías */}
       <div>
         <p className="text-xs uppercase tracking-wide text-ink/40 mb-3">Gastos por categoría</p>
@@ -175,5 +176,6 @@ export default function Presupuesto({ userId, currency }: { userId: string; curr
       </div>
 
     </div>
+
   )
 }
