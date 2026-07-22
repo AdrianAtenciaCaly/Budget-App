@@ -7,6 +7,11 @@ import CategoryGroup from '../components/CategoryGroup'
 import { supabase } from '../lib/supabaseClient'
 import { UserCategoryPref } from '../types'
 import { Currency } from '../lib/currencies'
+import Swal from 'sweetalert2'
+import { DownloadIcon } from '../components/ui/Icons'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+
 
 const MESES_LARGOS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -92,6 +97,252 @@ export default function Presupuesto({ userId, currency }: { userId: string; curr
       })
   }, [categories, prefs])
 
+  const escapeCSV = (val: string | number | null | undefined): string => {
+    if (val === null || val === undefined) return ''
+    const str = String(val)
+    if (str.includes(';') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return `"${str.replace(/"/g, '""')}"`
+    }
+    return str
+  }
+
+  const exportToExcel = () => {
+    const nombreMes = `${MESES_LARGOS[mesDate.getMonth()]} ${mesDate.getFullYear()}`
+    const rows: string[] = []
+
+    rows.push(`PRESUPUESTO PERSONAL;${escapeCSV(nombreMes)}`)
+    rows.push('')
+
+    rows.push('RESUMEN DE INGRESOS')
+    rows.push('Concepto;Monto')
+    rows.push(`Ingreso Principal 1;${budget?.ingreso_1 || 0}`)
+    rows.push(`Ingreso Principal 2;${budget?.ingreso_2 || 0}`)
+    rows.push(`Ingresos Adicionales;${budget?.ingresos_adicionales || 0}`)
+    rows.push(`Total Ingresos;${ingresos}`)
+    rows.push('')
+
+    rows.push('RESUMEN POR TIPO DE GASTO')
+    rows.push('Tipo de Gasto;Monto Presupuestado')
+    rows.push(`Gastos Básicos;${totales.basicos}`)
+    rows.push(`Gastos No Esenciales;${totales.noEsenciales}`)
+    rows.push(`Ahorro;${totales.ahorro}`)
+    rows.push(`Total Gastado Real (Pagado);${totales.gastado}`)
+    rows.push('')
+
+    rows.push('DETALLE DE GASTOS')
+    rows.push('Categoría;Concepto;Presupuestado;Real;Pagado')
+    sortedCategories.forEach(cat => {
+      const catItems = items.filter(i => i.category_id === cat.id)
+      catItems.forEach(item => {
+        rows.push([
+          escapeCSV(cat.label),
+          escapeCSV(item.concepto || '(Sin concepto)'),
+          item.valor_presupuestado || 0,
+          item.valor_real || 0,
+          item.pagado ? 'Sí' : 'No'
+        ].join(';'))
+      })
+    })
+
+    if (budget?.nota) {
+      rows.push('')
+      rows.push('NOTAS')
+      rows.push(escapeCSV(budget.nota))
+    }
+
+    const csvContent = '\uFEFF' + rows.join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `presupuesto_${mes}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const exportToPDF = () => {
+    const doc = new jsPDF()
+    const nombreMes = `${MESES_LARGOS[mesDate.getMonth()]} ${mesDate.getFullYear()}`
+
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(18)
+    doc.setTextColor(27, 94, 32)
+    doc.text(`PRESUPUESTO PERSONAL`, 14, 20)
+    
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(12)
+    doc.setTextColor(80, 80, 80)
+    doc.text(`Mes: ${nombreMes}`, 14, 27)
+
+    const formatMoney = (val: number) => {
+      return `${currency.symbol} ${val.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`
+    }
+
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(13)
+    doc.setTextColor(27, 94, 32)
+    doc.text("Resumen de Ingresos", 14, 38)
+
+    const incomeData = [
+      ["Ingreso Principal 1", formatMoney(budget?.ingreso_1 || 0)],
+      ["Ingreso Principal 2", formatMoney(budget?.ingreso_2 || 0)],
+      ["Ingresos Adicionales", formatMoney(budget?.ingresos_adicionales || 0)],
+      ["Total Ingresos", formatMoney(ingresos)]
+    ]
+
+    autoTable(doc, {
+      startY: 43,
+      head: [["Concepto", "Monto"]],
+      body: incomeData,
+      theme: 'striped',
+      headStyles: { fillColor: [27, 94, 32] },
+      styles: { font: 'helvetica', fontSize: 10 },
+      columnStyles: {
+        1: { halign: 'right' }
+      }
+    })
+
+    let currentY = (doc as any).lastAutoTable.finalY + 10
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(13)
+    doc.setTextColor(27, 94, 32)
+    doc.text("Resumen por Tipo de Gasto", 14, currentY)
+
+    const summaryData = [
+      ["Gastos Básicos", formatMoney(totales.basicos)],
+      ["Gastos No Esenciales", formatMoney(totales.noEsenciales)],
+      ["Ahorro", formatMoney(totales.ahorro)],
+      ["Total Gastado Real (Pagado)", formatMoney(totales.gastado)]
+    ]
+
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [["Tipo de Gasto", "Monto Presupuestado"]],
+      body: summaryData,
+      theme: 'striped',
+      headStyles: { fillColor: [27, 94, 32] },
+      styles: { font: 'helvetica', fontSize: 10 },
+      columnStyles: {
+        1: { halign: 'right' }
+      }
+    })
+
+    currentY = (doc as any).lastAutoTable.finalY + 10
+    if (currentY > 230) {
+      doc.addPage()
+      currentY = 20
+    }
+    
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(13)
+    doc.setTextColor(27, 94, 32)
+    doc.text("Detalle de Gastos", 14, currentY)
+
+    const expenseRows: any[] = []
+    sortedCategories.forEach(cat => {
+      const catItems = items.filter(i => i.category_id === cat.id)
+      catItems.forEach(item => {
+        expenseRows.push([
+          cat.label,
+          item.concepto || '(Sin concepto)',
+          formatMoney(item.valor_presupuestado || 0),
+          formatMoney(item.valor_real || 0),
+          item.pagado ? 'Sí' : 'No'
+        ])
+      })
+    })
+
+    if (expenseRows.length === 0) {
+      expenseRows.push(["No hay gastos registrados en este mes.", "", "", "", ""])
+    }
+
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [["Categoría", "Concepto", "Presupuestado", "Real", "Pagado"]],
+      body: expenseRows,
+      theme: 'striped',
+      headStyles: { fillColor: [27, 94, 32] },
+      styles: { font: 'helvetica', fontSize: 9 },
+      columnStyles: {
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'center' }
+      }
+    })
+
+    if (budget?.nota) {
+      currentY = (doc as any).lastAutoTable.finalY + 10
+      if (currentY > 240) {
+        doc.addPage()
+        currentY = 20
+      }
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(12)
+      doc.setTextColor(27, 94, 32)
+      doc.text("Notas:", 14, currentY)
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(10)
+      doc.setTextColor(80, 80, 80)
+      
+      const splitNote = doc.splitTextToSize(budget.nota, 180)
+      doc.text(splitNote, 14, currentY + 6)
+    }
+
+    doc.save(`presupuesto_${mes}.pdf`)
+  }
+
+  const handleExportClick = async () => {
+    const nombreMes = `${MESES_LARGOS[mesDate.getMonth()]} ${mesDate.getFullYear()}`
+    
+    const result = await Swal.fire({
+      title: 'Exportar Presupuesto',
+      text: `Elige el formato de descarga para el mes de ${nombreMes}:`,
+      icon: 'question',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: 'Excel (CSV)',
+      denyButtonText: 'PDF',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2d6a4f',
+      denyButtonColor: '#7a3b3b',
+      cancelButtonColor: '#9fb3a5',
+      reverseButtons: false
+    })
+
+    if (result.isDismissed) {
+      return
+    }
+
+    Swal.fire({
+      title: 'Generando documento...',
+      text: 'El presupuesto se está preparando y se descargará automáticamente.',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
+    setTimeout(() => {
+      try {
+        if (result.isConfirmed) {
+          exportToExcel()
+        } else if (result.isDenied) {
+          exportToPDF()
+        }
+        Swal.close()
+      } catch (error) {
+        console.error(error)
+        Swal.fire({
+          title: 'Error',
+          text: 'Hubo un problema al generar el documento.',
+          icon: 'error',
+          confirmButtonColor: '#7a3b3b'
+        })
+      }
+    }, 1200)
+  }
+
   if (loading) {
     return <div className="py-20 text-center text-ink/40 text-sm">Cargando tu presupuesto…</div>
   }
@@ -108,8 +359,16 @@ export default function Presupuesto({ userId, currency }: { userId: string; curr
           >
             Copiar de otro mes
           </button>
+          <button
+            onClick={handleExportClick}
+            className="text-sm border border-moss-100 hover:bg-moss-50 rounded-full px-4 py-2 transition text-moss-700 flex items-center gap-1.5 font-medium cursor-pointer"
+          >
+            <DownloadIcon size={14} className="text-moss-600" />
+            Exportar
+          </button>
         </div>
       </div>
+
 
       {/* Panel copiar */}
       {showCopy && (
