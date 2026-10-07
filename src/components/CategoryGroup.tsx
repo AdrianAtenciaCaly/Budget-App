@@ -120,14 +120,14 @@ function ExpenseItemRow({ item, currency, onUpdate, onDelete }: ExpenseItemRowPr
           value={item.concepto}
           onChange={(e) => onUpdate(item.id, { concepto: e.target.value })}
           placeholder="Concepto"
-          className={`flex-1 w-full sm:w-auto bg-transparent text-sm outline-none placeholder:text-ink/30 transition ${
+          className={`flex-1 w-full sm:w-auto bg-transparent text-sm outline-none placeholder:text-ink/30 transition focus-visible:ring-2 focus-visible:ring-wine ${
             item.pagado ? 'line-through text-ink/40' : ''
           }`}
         />
 
         {/* Badge estado */}
         <span
-          className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium mb-1 sm:mb-0 ${
+          className={`flex-shrink-0 whitespace-nowrap text-[10px] px-2 py-0.5 rounded-full font-medium mb-1 sm:mb-0 ${
             item.pagado ? 'bg-moss-100 text-moss-700' : 'bg-amber-400/15 text-amber-500'
           }`}
         >
@@ -142,7 +142,7 @@ function ExpenseItemRow({ item, currency, onUpdate, onDelete }: ExpenseItemRowPr
             value={item.valor_presupuestado || ''}
             onChange={(e) => onUpdate(item.id, { valor_presupuestado: Number(e.target.value) || 0 })}
             placeholder="0"
-            className="flex-1 w-full sm:max-w-[6rem] sm:w-auto bg-transparent text-sm font-mono text-right outline-none"
+            className="flex-1 w-full sm:max-w-[6rem] sm:w-auto bg-transparent text-sm font-mono text-right outline-none focus-visible:ring-2 focus-visible:ring-wine"
           />
         </div>
 
@@ -152,7 +152,7 @@ function ExpenseItemRow({ item, currency, onUpdate, onDelete }: ExpenseItemRowPr
             e.stopPropagation()
             onDelete(item.id)
           }}
-          className="flex text-ink/30 hover:text-wine transition p-1.5 rounded-lg hover:bg-wine/10 items-center justify-center flex-shrink-0 opacity-100"
+          className="flex text-ink/30 hover:text-wine transition p-1.5 rounded-lg hover:bg-wine/10 items-center justify-center flex-shrink-0 opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine"
           title="Eliminar gasto"
         >
           <TrashIcon size={14} />
