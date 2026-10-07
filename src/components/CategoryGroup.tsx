@@ -1,6 +1,167 @@
 import { useState } from 'react'
 import { Category, ExpenseItem } from '../types'
 import { Currency } from '../lib/currencies'
+import { TrashIcon } from './ui/Icons'
+
+interface ExpenseItemRowProps {
+  item: ExpenseItem
+  currency: Currency
+  onUpdate: (id: string, patch: Partial<ExpenseItem>) => void
+  onDelete: (id: string) => void
+}
+
+function ExpenseItemRow({ item, currency, onUpdate, onDelete }: ExpenseItemRowProps) {
+  const [startX, setStartX] = useState(0)
+  const [startY, setStartY] = useState(0)
+  const [offsetX, setOffsetX] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX)
+    setStartY(e.touches[0].clientY)
+    setIsSwiping(true)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSwiping) return
+    const currentTouchX = e.touches[0].clientX
+    const currentTouchY = e.touches[0].clientY
+
+    const diffX = currentTouchX - startX
+    const diffY = currentTouchY - startY
+
+    // Si el movimiento vertical es mayor, asumimos que está haciendo scroll y cancelamos
+    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 10) {
+      setIsSwiping(false)
+      return
+    }
+
+    // Calcular el nuevo offset
+    let newOffset = diffX + (isOpen ? -72 : 0)
+
+    // Limitar el deslizamiento (solo hacia la izquierda, no a la derecha de 0)
+    if (newOffset > 0) newOffset = 0
+    if (newOffset < -110) {
+      // Efecto resistencia
+      newOffset = -110 + (newOffset + 110) * 0.2
+    }
+
+    setOffsetX(newOffset)
+  }
+
+  const handleTouchEnd = () => {
+    setIsSwiping(false)
+    if (offsetX < -36) {
+      setIsOpen(true)
+      setOffsetX(-72)
+    } else {
+      setIsOpen(false)
+      setOffsetX(0)
+    }
+  }
+
+  const handleRowClick = () => {
+    if (isOpen) {
+      setIsOpen(false)
+      setOffsetX(0)
+    }
+  }
+
+  return (
+    <div className="relative overflow-hidden w-full select-none">
+      {/* Botón rojo detrás para deslizar en móviles */}
+      <button
+        onClick={() => onDelete(item.id)}
+        className="absolute right-0 top-0 bottom-0 w-[72px] bg-wine text-white flex flex-col items-center justify-center gap-0.5 hover:bg-wine/90 active:bg-wine/85 transition-colors z-0"
+        style={{
+          opacity: offsetX < -10 ? 1 : 0,
+          transition: 'opacity 0.15s ease-out'
+        }}
+      >
+        <TrashIcon size={16} className="text-white" />
+        <span className="text-[10px] font-medium tracking-wide">Eliminar</span>
+      </button>
+
+      {/* Fila visible */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleRowClick}
+        className={`group flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 px-4 py-2.5 bg-white transition-transform relative z-10 w-full ${
+          item.pagado ? 'bg-moss-50/30' : ''
+        }`}
+        style={{
+          transform: `translateX(${offsetX}px)`,
+          transition: isSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
+      >
+        {/* Checkbox pagado */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onUpdate(item.id, { pagado: !item.pagado })
+          }}
+          title={item.pagado ? 'Marcar como pendiente' : 'Marcar como pagado'}
+          className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${
+            item.pagado ? 'bg-moss-600 border-moss-600' : 'border-moss-200 hover:border-moss-400'
+          }`}
+        >
+          {item.pagado && (
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </button>
+
+        {/* Concepto */}
+        <input
+          value={item.concepto}
+          onChange={(e) => onUpdate(item.id, { concepto: e.target.value })}
+          placeholder="Concepto"
+          className={`flex-1 w-full sm:w-auto bg-transparent text-sm outline-none placeholder:text-ink/30 transition ${
+            item.pagado ? 'line-through text-ink/40' : ''
+          }`}
+        />
+
+        {/* Badge estado */}
+        <span
+          className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium mb-1 sm:mb-0 ${
+            item.pagado ? 'bg-moss-100 text-moss-700' : 'bg-amber-400/15 text-amber-500'
+          }`}
+        >
+          {item.pagado ? 'Pagado' : 'Pendiente'}
+        </span>
+
+        {/* Valor */}
+        <div className="flex items-center gap-0.5 w-full sm:w-auto">
+          <span className="text-xs text-ink/30">{currency.symbol}</span>
+          <input
+            type="number"
+            value={item.valor_presupuestado || ''}
+            onChange={(e) => onUpdate(item.id, { valor_presupuestado: Number(e.target.value) || 0 })}
+            placeholder="0"
+            className="flex-1 w-full sm:max-w-[6rem] sm:w-auto bg-transparent text-sm font-mono text-right outline-none"
+          />
+        </div>
+
+        {/* Eliminar (Escritorio - visible en hover) */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(item.id)
+          }}
+          className="flex text-ink/30 hover:text-wine transition p-1.5 rounded-lg hover:bg-wine/10 items-center justify-center flex-shrink-0 opacity-100"
+          title="Eliminar gasto"
+        >
+          <TrashIcon size={14} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 
 interface Props {
   category: Category
@@ -55,59 +216,13 @@ export default function CategoryGroup({ category, items, onAdd, onUpdate, onDele
         <>
           <div className="divide-y divide-moss-100/70">
             {items.map((item) => (
-              <div key={item.id} className={`flex items-center gap-3 px-4 py-2.5 transition ${item.pagado ? 'bg-moss-50/30' : ''}`}>
-
-                {/* Checkbox pagado */}
-                <button
-                  onClick={() => onUpdate(item.id, { pagado: !item.pagado })}
-                  title={item.pagado ? 'Marcar como pendiente' : 'Marcar como pagado'}
-                  className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${item.pagado
-                      ? 'bg-moss-600 border-moss-600'
-                      : 'border-moss-200 hover:border-moss-400'
-                    }`}
-                >
-                  {item.pagado && (
-                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </button>
-
-                {/* Concepto */}
-                <input
-                  value={item.concepto}
-                  onChange={(e) => onUpdate(item.id, { concepto: e.target.value })}
-                  placeholder="Concepto"
-                  className={`flex-1 bg-transparent text-sm outline-none placeholder:text-ink/30 transition ${item.pagado ? 'line-through text-ink/40' : ''
-                    }`}
-                />
-
-                {/* Badge estado */}
-                <span className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium ${item.pagado
-                    ? 'bg-moss-100 text-moss-700'
-                    : 'bg-amber-400/15 text-amber-500'
-                  }`}>
-                  {item.pagado ? 'Pagado' : 'Pendiente'}
-                </span>
-
-                {/* Valor */}
-                <div className="flex items-center gap-0.5">
-                  <span className="text-xs text-ink/30">{currency.symbol}</span>
-                  <input
-                    type="number"
-                    value={item.valor_presupuestado || ''}
-                    onChange={(e) => onUpdate(item.id, { valor_presupuestado: Number(e.target.value) || 0 })}
-                    placeholder="0"
-                    className="w-24 bg-transparent text-sm font-mono text-right outline-none"
-                  />
-                </div>
-
-                {/* Eliminar */}
-                <button
-                  onClick={() => onDelete(item.id)}
-                  className="text-ink/20 hover:text-clay transition px-1 text-sm flex-shrink-0"
-                >×</button>
-              </div>
+              <ExpenseItemRow
+                key={item.id}
+                item={item}
+                currency={currency}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+              />
             ))}
             {items.length === 0 && (
               <p className="px-4 py-3 text-xs text-ink/30">Sin movimientos todavía.</p>
